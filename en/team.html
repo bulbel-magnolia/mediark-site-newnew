@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Team - MediArk</title> 
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <!-- 使用 Inter 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-white">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div>
+                <a href="index.html" title="Back to Home" class="flex items-center gap-x-3">
+                    <!-- Logo 路径 -->
+                    <img class="h-12 w-auto" src="../网页展示素材库/logo/logo.png" alt="MediArk Logo">
+                    <span class="text-2xl font-bold text-blue-800">MediArk</span>
+                </a>
+            </div>
+            <!-- 导航菜单 -->
+            <div class="hidden md:flex space-x-8 text-lg font-medium text-slate-600">
+                <a href="index.html" class="hover:text-blue-700">Home</a>
+                <a href="problem.html" class="hover:text-blue-700">Pain Points</a>
+                <a href="solution.html" class="hover:text-blue-700">Solutions</a>
+                <a href="features.html" class="hover:text-blue-700">Features</a>
+                <a href="library.html" class="hover:text-blue-700">Library</a>
+                <a href="team.html" class="text-blue-700 font-bold">About Us</a>
+            </div>
+            <!-- 右侧按钮 -->
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="../index.html" class="px-4 py-2 font-semibold rounded-full border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors text-sm">
+                    中文 CN
+                </a>
+                <a href="../app-ui.html" class="hidden md:block bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition-all">
+                    Launch App
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- 1. 创始人故事 -->
+        <section id="founder-story" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-16 items-center">
+                    
+                    <div data-aos="fade-right" data-aos-delay="100" class="order-1 md:order-2">
+                        <!-- 注意图片路径 ../ -->
+                        <img src="../网页展示素材库/team/创始人.png" 
+                             alt="Founder Childhood" 
+                             class="rounded-2xl shadow-xl w-full object-cover grayscale hover:grayscale-0 transition-all duration-500">
+                    </div>
+
+                    <div data-aos="fade-left" class="order-2 md:order-1">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-6">The Seed of a Dream</h2>
+                        <p class="text-gray-600 leading-relaxed mb-6 text-lg">
+                            The story begins with an old photograph and a child's pure dream. Witnessing the fragility of life from a young age, our founder vowed to master medicine to help others. <br><br>
+                            This original aspiration, like a fearless youth riding a white horse, became the deepest and warmest driving force behind the founding of MediArk.
+                        </p>
+                        <p class="text-gray-600 leading-relaxed text-lg">
+                            This childhood dream has crystallized into a firm belief: <span class="font-semibold text-blue-700">Medical knowledge should be warm, understandable, and accessible to everyone in need.</span>
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 团队行动 -->
+        <section id="team-in-action" class="py-20 bg-blue-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 data-aos="fade-up" class="text-3xl font-bold text-gray-800">Carrying the Torch: Our Journey</h2>
+                    <p data-aos="fade-up" data-aos-delay="100" class="mt-6 text-gray-600 text-lg">
+                        We believe power lies in every small action. From cities to rural villages, online to offline, we measure the width of science communication with our footsteps and expand the depth of care with sincerity.
+                    </p>
+                </div>
+
+                <div class="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div data-aos="fade-up" data-aos-delay="200">
+                        <!-- 注意图片路径 ../ -->
+                        <img src="../网页展示素材库/team/科普1.png" alt="Community Service" class="rounded-lg shadow-lg object-cover w-full h-64 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+                    </div>
+                    <div data-aos="fade-up" data-aos-delay="300">
+                        <img src="../网页展示素材库/team/科普2.png" alt="Interaction" class="rounded-lg shadow-lg object-cover w-full h-64 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 mt-0 md:mt-8">
+                    </div>
+                    <div data-aos="fade-up" data-aos-delay="400">
+                        <img src="../网页展示素材库/team/科普3.png" alt="Group Photo" class="rounded-lg shadow-lg object-cover w-full h-64 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+                    </div>
+                    <div data-aos="fade-up" data-aos-delay="500">
+                        <img src="../网页展示素材库/team/科普4.png" alt="Public Lecture" class="rounded-lg shadow-lg object-cover w-full h-64 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 mt-0 md:mt-8">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 权威基石 -->
+        <section id="authoritative-cornerstone" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-16 items-center">
+                    
+                    <div data-aos="zoom-in" class="flex justify-center items-center">
+                        <!-- 注意图片路径 ../ -->
+                        <img src="../网页展示素材库/team/肿瘤医院.jpg" 
+                             alt="Peking University Cancer Hospital" 
+                             class="rounded-full shadow-xl w-64 h-64 md:w-80 md:h-80 object-cover border-8 border-blue-50">
+                    </div>
+
+                    <div data-aos="fade-left">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-6">Authoritative Cornerstone</h2>
+                        <h3 class="text-xl font-semibold text-blue-800 mb-4">Peking University Cancer Hospital</h3>
+                        <p class="text-gray-600 leading-relaxed mb-4 text-lg">
+                            Our strength comes from solid academic support. As our strategic partner, <strong>Peking University Cancer Hospital</strong> provides us with cutting-edge medical insights and rigorous scientific standards.
+                        </p>
+                        <p class="text-gray-600 leading-relaxed text-lg">
+                            Behind every piece of content lies the wisdom and effort of top oncology experts, ensuring that every message we deliver is authoritative, accurate, and trustworthy.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+        
+        <!-- 4. 黄金三角 -->
+        <section id="golden-triangle" class="py-20 bg-slate-900 text-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h2 data-aos="fade-up" class="text-3xl font-bold">The "Golden Triangle" Team</h2>
+                    <p data-aos="fade-up" data-aos-delay="100" class="mt-6 text-slate-300 text-lg">
+                        We know that a single force cannot bridge the massive information gap. <br>
+                        MediArk unites talents from <span class="text-blue-400 font-bold">Clinical Medicine, AI Engineering, and Creative Media</span>, forming a unique source of innovation.
+                    </p>
+                </div>
+
+                <div class="mt-16" data-aos="zoom-in-up" data-aos-delay="200">
+                    <!-- 注意图片路径 ../ -->
+                    <img src="../网页展示素材库/team/医工媒.png" 
+                         alt="MediArk Team Photo" 
+                         class="rounded-xl shadow-2xl object-cover w-full max-w-5xl mx-auto border border-slate-700">
+                </div>
+            </div>
+        </section>
+
+    </main>
+    <footer class="bg-slate-950 text-white py-10 border-t border-slate-800">
+        <div class="container mx-auto px-6 text-center">
+             <p class="text-xl font-bold tracking-wide">MediArk</p>
+             <p class="mt-2 text-slate-400">The "Noah's Ark" for Oncology Cognitive Health</p>
+             <p class="mt-6 text-slate-600 text-sm">© 2026 MediArk Team. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <script> AOS.init({ duration: 800, once: true }); </script>
+</body>
+</html>

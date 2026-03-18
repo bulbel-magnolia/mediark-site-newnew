@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「智瘤方舟」- 中国生物医学多模态生成式AI肿瘤科普转化平台</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* 应用全局字体 */
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        html { scroll-behavior: smooth; }
+        
+        /* ======== 滚动吸附CSS ======== */
+        #scroll-container {
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            height: 100vh;
+        }
+        
+        #scroll-container > section {
+            scroll-snap-align: start;
+        }
+    </style>
+</head>
+<body>
+
+<header class="bg-white shadow-sm fixed top-0 w-full z-50">
+    <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+        
+        <!-- Logo 区域 -->
+        <div>
+            <a href="#hero" title="返回顶部" class="flex items-center gap-x-3">
+                <!-- 中文版路径不需要 ../ -->
+                <img class="h-10 w-auto" src="网页展示素材库/logo/logo.png" alt="智瘤方舟 Logo">
+                <span class="text-2xl font-bold text-blue-800">「智瘤方舟」MediArk</span>
+            </a>
+        </div>
+        
+        <!-- 导航菜单 -->
+        <div class="hidden md:flex space-x-8 text-lg font-medium text-slate-600">
+            <a href="#problem" class="hover:text-blue-700">项目痛点</a>
+            <a href="#solution" class="hover:text-blue-700">解决方案</a>
+            <a href="#features" class="hover:text-blue-700">核心功能</a>
+            <a href="#team" class="hover:text-blue-700">关于我们</a>
+            <a href="library.html" class="hover:text-blue-700">作品库</a>
+        </div>
+        
+        <!-- 按钮区域 -->
+        <div class="hidden md:flex items-center space-x-4">
+            <!-- 关键修改：这里加了 href="en/index.html" -->
+            <a href="en/index.html" class="px-6 py-2 font-semibold rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out">
+                English
+            </a>
+            <a href="dashboard.html" class="bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700">平台入口</a>
+        </div>
+
+    </nav>
+</header>
+
+    <main id="scroll-container">
+        
+        <!-- Hero Section -->
+        <section id="hero" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('网页展示素材库/图片1.png');">
+            <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+            <div class="relative z-10 container mx-auto px-6" data-aos="fade-up">
+        
+                <div class="flex justify-center items-center gap-x-4 mb-8 -translate-y-16">
+                    <img src="网页展示素材库/logo/logo.png" alt="智瘤方舟 Logo" class="w-auto -translate-y-8" style="height: 250px;">
+                </div>
+                
+                <h1 class="text-5xl md:text-5xl font-extrabold text-white leading-tight -translate-y-24">中国生物医学多模态<br>生成式AI肿瘤科普转化平台</h1>
+                <p class="mt-8 text-xl md:text-1xl text-gray-200 max-w-4xl mx-auto -translate-y-24">让最前沿、最权威的肿瘤知识，以<span class="font-semibold text-white underline decoration-blue-400">最温暖、最有效</span>的方式，精准触达每一位需要的人</p>
+            </div>
+        </section>
+
+        <!-- Problem Section -->
+        <section id="problem" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('网页展示素材库/problem.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-30"></div> 
+            <div class="relative z-10 container mx-auto px-6">
+                <h2 class="text-5xl md:text-6xl font-bold text-white">传统科普的三大困境</h2>
+                <p class="mt-8 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto">认知鸿沟、形式固化、传播低效。我们致力于用技术打破壁垒，弥合医患之间的信息鸿沟</p>
+                 <a href="problem.html" class="mt-10 inline-block font-bold text-white border-2 border-white px-10 py-4 rounded-full hover:bg-white hover:text-black transition text-lg">了解详情 &rarr;</a>
+            </div>
+        </section>
+
+        <!-- Solution Section -->
+        <section id="solution" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('网页展示素材库/solution.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-30"></div>
+            <div class="relative z-10 container mx-auto px-6">
+                <h2 class="text-5xl md:text-6xl font-bold text-white">AI赋能的人机协同新范式</h2>
+                <p class="mt-8 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto">我们首创“AI生成+权威审核”双轮驱动模式，重塑科普内容的生产与传播，让权威知识高效传递</p>
+                <a href="solution.html" class="mt-10 inline-block font-bold text-white border-2 border-white px-10 py-4 rounded-full hover:bg-white hover:text-black transition text-lg">探索解决方案 &rarr;</a>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('网页展示素材库/features.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-30"></div>
+            <div class="relative z-10 container mx-auto px-6">
+                <h2 class="text-5xl md:text-6xl font-bold text-white">一站式智能平台</h2>
+                <p class="mt-8 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto">从智能生成、权威审核到患者助手，我们提供全方位的工具，全面赋能医患沟通</p>
+                <a href="features.html" class="mt-10 inline-block font-bold text-white border-2 border-white px-10 py-4 rounded-full hover:bg-white hover:text-black transition text-lg">查看全部功能 &rarr;</a>
+            </div>
+        </section>
+        
+        <!-- Team Section -->
+        <section id="team" class="h-screen flex flex-col relative bg-cover bg-center" style="background-image: url('网页展示素材库/team-bg.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+            <div class="flex-grow flex items-center justify-center text-center relative z-10 container mx-auto px-6">
+                <div>
+                    <h2 class="text-5xl md:text-6xl font-bold text-white -translate-y-16">薪火承梦，使命必达</h2>
+                    <p class="mt-8 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto">我们是一支由“医工媒”专家组成的跨学科团队，致力于用科技与人文点亮肿瘤患者的希望之路</p>
+                    <a href="team.html" class="mt-10 inline-block font-bold text-white border-2 border-white px-10 py-4 rounded-full hover:bg-white hover:text-black transition text-lg">了解我们的团队 &rarr;</a>
+                </div>
+            </div>
+            <footer class="bg-blue-900 text-white py-8 w-full relative z-10">
+                <div class="container mx-auto px-6 text-center">
+                    <p class="text-lg font-semibold">「智瘤方舟」MediArk</p>
+                    <p class="mt-2 text-gray-300">成为守护肿瘤患者认知健康的“诺亚方舟”</p>
+                </div>
+            </footer>
+        </section>
+    </main>
+
+    <script> AOS.init({ duration: 800, once: true, disable: 'mobile' }); </script>
+</body>
+</html>

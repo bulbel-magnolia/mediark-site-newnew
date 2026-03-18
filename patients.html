@@ -1,0 +1,500 @@
+<!--
+-------------------------------------------------------------------------
+[模块名称]: 患者全周期档案与画像管理 (Patient Lifecycle Management)
+[文件名称]: patients.html
+[开发语言]: HTML5 / JavaScript
+[所属子系统]: 医生智能工作台
+[功能描述]: 
+    1. 渲染患者信息列表，动态展示依从性进度条。
+    2. 基于 AI 画像标签（如“高焦虑”）实现多维度筛选与检索。
+    3. 提供新患录入模态框，支持临床信息与画像标签的结构化存储。
+-------------------------------------------------------------------------
+-->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Management - 智瘤方舟医生工作台</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+        .modal { transition: opacity 0.25s ease; }
+        body.modal-active { overflow-x: hidden; overflow-y: hidden !important; }
+        .dropdown-enter { animation: slideDown 0.2s ease-out forwards; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 滚动条美化 */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden">
+
+    <!-- 侧边栏 -->
+    <aside class="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <div class="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">M</div>
+            <span class="font-bold text-lg tracking-wide">MediArk</span>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition"><i class="fa-solid fa-chart-pie w-5"></i><span data-i18n="menu_dashboard">工作台</span></a>
+            <a href="patients.html" class="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-900/50 transition"><i class="fa-solid fa-user-group w-5"></i><span data-i18n="menu_patients">患者管理</span></a>
+            <a href="prescription.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition"><i class="fa-solid fa-file-prescription w-5"></i><span data-i18n="menu_prescription">数字处方开具</span></a>
+            <a href="knowledge.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition"><i class="fa-solid fa-book-medical w-5"></i><span data-i18n="menu_knowledge">知识库 (PKU)</span></a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold">L</div>
+                <div><p class="text-sm font-medium" data-i18n="doc_name" >黎医生</p><p class="text-xs text-slate-400" data-i18n="hospital_name" >北大肿瘤医院</p></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <header class="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-20">
+            <h1 class="text-xl font-bold text-slate-800" data-i18n="page_title">患者全周期管理</h1>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleLang()" class="px-3 py-1 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 transition"><i class="fa-solid fa-globe mr-2 text-slate-500"></i><span id="lang-display">English</span></button>
+                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition shadow-lg shadow-blue-500/30"><i class="fa-solid fa-user-plus"></i> <span data-i18n="btn_add">新增患者</span></button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-6 md:p-8 bg-slate-50" onclick="closeFilterMenuOutside(event)">
+            <!-- 搜索栏 -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row justify-between gap-4 z-10 relative">
+                <div class="relative w-full md:w-96">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="search-input" onkeyup="renderTable()" data-i18n-placeholder="search_ph" placeholder="搜索姓名、病历号..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                </div>
+                <div class="relative">
+                    <button id="filter-btn" onclick="toggleFilterMenu(event)" class="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 text-sm flex items-center gap-2 transition bg-white">
+                        <i class="fa-solid fa-filter"></i> <span data-i18n="filter_btn">筛选画像</span> <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                    </button>
+                    <div id="filter-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-50 dropdown-enter">
+                        <div class="text-xs font-bold text-slate-400 uppercase mb-3" data-i18n="filter_title">按画像标签筛选</div>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" onchange="handleFilterChange('高焦虑')" class="rounded text-blue-600"><span class="text-sm text-slate-700" data-i18n="tag_anxiety">高焦虑</span></label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" onchange="handleFilterChange('老年')" class="rounded text-blue-600"><span class="text-sm text-slate-700" data-i18n="tag_elder">老年患者</span></label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" onchange="handleFilterChange('方言')" class="rounded text-blue-600"><span class="text-sm text-slate-700" data-i18n="tag_dialect">方言用户</span></label>
+                        </div>
+                        <div class="border-t border-slate-100 mt-3 pt-2 text-right"><button onclick="clearFilters()" class="text-xs text-blue-600 hover:underline" data-i18n="filter_clear">清空筛选</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 表格 -->
+            <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden min-h-[400px]">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                        <th class="px-6 py-4" data-i18n="th_info">患者信息</th>
+                        <th class="px-6 py-4" data-i18n="th_diag">诊断 & 阶段</th>
+                        <th class="px-6 py-4 w-1/4" data-i18n="th_tags">AI 画像标签</th>
+                        <th class="px-6 py-4 w-1/5" data-i18n="th_comp">科普依从性</th>
+                        <th class="px-6 py-4 text-right" data-i18n="th_action">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patient-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                </table>
+                <div id="empty-state" class="hidden flex-col items-center justify-center py-12 text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-3"></i><p>未找到符合条件的患者</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 增强版新增患者模态框 -->
+    <div id="add-modal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-slate-900 opacity-50"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-2xl mx-auto rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="modal-header py-4 px-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                <p class="text-xl font-bold text-slate-800" data-i18n="modal_title">登记新患者</p>
+                <div onclick="closeModal()" class="cursor-pointer text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></div>
+            </div>
+
+            <div class="modal-content overflow-y-auto p-6 space-y-6 custom-scroll bg-slate-50/50">
+                <!-- 基础信息 -->
+                <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-2" data-i18n="lbl_base_info">基础临床信息</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_name">姓名</label>
+                            <input id="input-name" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例如：王小明" data-i18n-placeholder="ph_name_ex">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_id">病历号 (ID)</label>
+                            <input type="text"   disabled placeholder="系统自动生成" class="w-full border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-400" data-i18n-placeholder="ph_id_auto">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_diag">主要诊断</label>
+                            <select id="input-diagnosis" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none bg-white">
+                            <option value="食管鳞癌" data-i18n="opt_esop">食管鳞状细胞癌</option>
+                            <option value="肺腺癌" data-i18n="opt_lung">非小细胞肺癌</option>
+                            <option value="胃癌" data-i18n="opt_gas">胃癌</option>
+                            <option value="结直肠癌" data-i18n="opt_col">结直肠癌</option>
+                            <option value="乳腺癌" data-i18n="opt_bre">乳腺癌</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_stage">当前治疗阶段</label>
+                            <select id="input-stage" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none bg-white">
+                            <option value="术后第1周" data-i18n="opt_s1">术后康复期 (第1周)</option>
+                            <option value="化疗期" data-i18n="opt_s2">围手术期化疗</option>
+                            <option value="放疗期" data-i18n="opt_s3">放射治疗中</option>
+                            <option value="靶向治疗中" data-i18n="opt_s4">靶向维持治疗</option>
+                            <option value="终末期" data-i18n="opt_s5">安宁疗护阶段</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详细画像标签 -->
+                <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-purple-600 pl-2" data-i18n="lbl_ai_persona">多模态画像评估 (AI Persona)</h3>
+                    
+                    <!-- 1. 心理与认知 -->
+                    <div class="mb-5">
+                        <p class="text-xs font-bold text-slate-400 mb-2 uppercase flex items-center gap-2" data-i18n="sec_psych"><i class="fa-solid fa-brain"></i> 心理与认知状态</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="check-item"><input type="checkbox" value="高焦虑" class="peer sr-only"><span class="check-label text-red-600 bg-red-50 border-red-100 peer-checked:bg-red-600 peer-checked:text-white" data-i18n="tag_anxiety">高焦虑状态</span></label>
+                            <label class="check-item"><input type="checkbox" value="抑郁倾向" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_depress">抑郁倾向</span></label>
+                            <label class="check-item"><input type="checkbox" value="否认期" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_denial">否认病情</span></label>
+                            <label class="check-item"><input type="checkbox" value="恐惧复发" class="peer sr-only"><span class="check-label text-red-600 bg-red-50 border-red-100 peer-checked:bg-red-600 peer-checked:text-white" data-i18n="tag_fear">严重恐惧复发</span></label>
+                            <label class="check-item"><input type="checkbox" value="认知障碍" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_cog">轻度认知障碍</span></label>
+                            <label class="check-item"><input type="checkbox" value="睡眠障碍" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_sleep">睡眠障碍</span></label>
+                            <label class="check-item"><input type="checkbox" value="乐观配合" class="peer sr-only"><span class="check-label text-green-600 bg-green-50 border-green-100 peer-checked:bg-green-600 peer-checked:text-white" data-i18n="tag_opt">乐观配合</span></label>
+                            <label class="check-item"><input type="checkbox" value="依赖性强" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_depend">依赖性强</span></label>
+                        </div>
+                    </div>
+
+                    <!-- 2. 社会与人口学 -->
+                    <div class="mb-5">
+                        <p class="text-xs font-bold text-slate-400 mb-2 uppercase flex items-center gap-2" data-i18n="sec_social"><i class="fa-solid fa-user-tag"></i> 社会属性</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="check-item"><input type="checkbox" value="小学学历" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_low_edu">低文化程度</span></label>
+                            <label class="check-item"><input type="checkbox" value="方言(粤语)" class="peer sr-only"><span class="check-label text-orange-600 bg-orange-50 border-orange-100 peer-checked:bg-orange-600 peer-checked:text-white" data-i18n="tag_canton">方言(粤语)</span></label>
+                            <label class="check-item"><input type="checkbox" value="方言(客家)" class="peer sr-only"><span class="check-label text-orange-600 bg-orange-50 border-orange-100 peer-checked:bg-orange-600 peer-checked:text-white" data-i18n="tag_hakka">方言(客家)</span></label>
+                            <label class="check-item"><input type="checkbox" value="独居老人" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_alone">独居/无照护</span></label>
+                            <label class="check-item"><input type="checkbox" value="经济困难" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_poor">经济困难</span></label>
+                            <label class="check-item"><input type="checkbox" value="宗教信仰" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_relig">有宗教信仰</span></label>
+                            <label class="check-item"><input type="checkbox" value="异地就医" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_remote">异地就医</span></label>
+                            <label class="check-item"><input type="checkbox" value="家属代查" class="peer sr-only"><span class="check-label text-blue-600 bg-blue-50 border-blue-100 peer-checked:bg-blue-600 peer-checked:text-white" data-i18n="tag_family">家属代管</span></label>
+                        </div>
+                    </div>
+
+                    <!-- 3. 偏好与习惯 -->
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 mb-2 uppercase flex items-center gap-2" data-i18n="sec_pref"><i class="fa-solid fa-thumbs-up"></i> 接收偏好</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label class="check-item"><input type="checkbox" value="视觉偏好" class="peer sr-only"><span class="check-label text-purple-600 bg-purple-50 border-purple-100 peer-checked:bg-purple-600 peer-checked:text-white" data-i18n="tag_video">偏好短视频</span></label>
+                            <label class="check-item"><input type="checkbox" value="图文偏好" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_graphic">偏好大字图文</span></label>
+                            <label class="check-item"><input type="checkbox" value="听觉型" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_audio">偏好语音/播客</span></label>
+                            <label class="check-item"><input type="checkbox" value="关注数据" class="peer sr-only"><span class="check-label text-blue-600 bg-blue-50 border-blue-100 peer-checked:bg-blue-600 peer-checked:text-white" data-i18n="tag_data">关注生存数据</span></label>
+                            <label class="check-item"><input type="checkbox" value="专家导向" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_expert">迷信权威专家</span></label>
+                            <label class="check-item"><input type="checkbox" value="病友案例" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_story">关注病友故事</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer p-4 border-t border-slate-100 flex justify-end gap-3 bg-white">
+                <button onclick="closeModal()" class="px-5 py-2.5 rounded-lg text-sm text-slate-500 hover:bg-slate-100 font-medium transition" data-i18n="btn_cancel">取消</button>
+                <button onclick="saveNewPatient()" class="px-6 py-2.5 rounded-lg text-sm bg-blue-600 text-white font-medium hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition" data-i18n="btn_save">保存并添加患者</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 样式补充：Checkbox 样式 -->
+    <style>
+        .check-label {
+            display: block; text-align: center; padding: 6px 4px; border-radius: 6px; 
+            font-size: 12px; transition: all 0.2s; border: 1px solid transparent;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+        }
+    </style>
+
+<script>
+    // 1. 数据定义：默认数据 + 本地存储读取
+    const defaultPatients = [
+        { 
+            id: "20250801",             // DB Field: patient_id (患者唯一标识)
+            name: "张建国",              // DB Field: real_name (真实姓名)
+            name_en: "Zhang Jianguo", 
+            diagnosis: "食管鳞癌",       // DB Field: diagnosis_main (主要诊断)
+            diagnosis_en: "Esophageal SCC", 
+            stage: "术后第1周",          // DB Field: treatment_stage (治疗阶段)
+            stage_en: "Post-op Week 1", 
+            // DB Field: persona_tags (AI画像标签) - 存储为 JSON 格式
+            tags: [
+                {text:"高焦虑", color:"bg-red-50 text-red-600"}, 
+                {text:"小学学历", color:"bg-gray-100 text-slate-600"}, 
+                {text:"视觉偏好", color:"bg-purple-50 text-purple-600"}
+            ], 
+            compliance: 85,             // DB Field: compliance_rate (科普依从率)
+            visits: "昨日活跃", 
+            visits_en: "Active Yesterday" 
+        },
+        { id: "20250722", name: "李淑芬", name_en: "Li Shufen", diagnosis: "肺腺癌", diagnosis_en: "Lung Adenocarcinoma", stage: "靶向治疗中", stage_en: "Targeted Therapy", tags: [{text:"情绪稳定", color:"bg-green-50 text-green-600"}, {text:"方言(粤语)", color:"bg-orange-50 text-orange-600"}], compliance: 45, visits: "需提醒复查", visits_en: "Check-up Needed" },
+        { id: "20250910", name: "王强", name_en: "Wang Qiang", diagnosis: "高危人群筛查", diagnosis_en: "High Risk Screen", stage: "等待检查结果", stage_en: "Waiting Results", tags: [{text:"高知群体", color:"bg-blue-50 text-blue-600"}, {text:"关注数据", color:"bg-indigo-50 text-indigo-600"}], compliance: 10, visits: "新注册", visits_en: "New User" },
+        { id: "20250615", name: "赵铁柱", name_en: "Zhao Tiezhu", diagnosis: "胃癌", diagnosis_en: "Gastric Cancer", stage: "化疗期", stage_en: "Chemotherapy", tags: [{text:"高焦虑", color:"bg-red-50 text-red-600"}, {text:"独居老人", color:"bg-slate-100 text-slate-600"}], compliance: 30, visits: "不活跃", visits_en: "Inactive" }
+    ];
+    let patients = JSON.parse(localStorage.getItem('mediark_patients')) || defaultPatients;
+    let activeFilters = new Set();
+    let currentLang = localStorage.getItem('mediark_lang') || 'zh';
+
+    // 2. 增强版国际化字典 (包含模态框)
+    const i18n = {
+        zh: {
+            dashboard: "工作台", patients: "患者管理", prescription: "数字处方开具", knowledge: "知识库 (PKU)",
+            page_title: "患者全周期管理", // 补全页面标题
+            btn_add: "新增患者", 
+            filter_btn: "筛选画像", 
+            search_ph: "搜索姓名、病历号...",
+            ph_name_ex: "例如：王小明",
+            ph_id_auto: "系统自动生成",
+            // 筛选菜单
+            filter_title: "按画像标签筛选",
+            tag_anxiety: "高焦虑状态", tag_elder: "老年患者", tag_dialect: "方言用户",
+            filter_clear: "清空筛选",
+
+            // 表头
+            th_info: "患者信息", th_diag: "诊断 & 阶段", th_tags: "AI 画像标签", th_comp: "科普依从性", th_action: "操作",
+            btn_prescribe: "开具处方",
+
+            // 模态框 - 基础
+            modal_title: "登记新患者",
+            lbl_base_info: "基础临床信息", lbl_name: "姓名", lbl_id: "病历号 (ID)", lbl_diag: "主要诊断", lbl_stage: "当前治疗阶段",
+            
+            // 模态框 - Select 选项
+            opt_esop: "食管鳞状细胞癌", opt_lung: "非小细胞肺癌", opt_gas: "胃癌", opt_col: "结直肠癌", opt_bre: "乳腺癌",
+            opt_s1: "术后康复期 (第1周)", opt_s2: "围手术期化疗", opt_s3: "放射治疗中", opt_s4: "靶向维持治疗", opt_s5: "安宁疗护阶段",
+
+            // 模态框 - 画像
+            lbl_ai_persona: "多模态画像评估 (AI Persona)",
+            sec_psych: "心理与认知状态", sec_social: "社会属性", sec_pref: "接收偏好",
+            btn_cancel: "取消", btn_save: "保存并添加患者",
+
+            // 画像标签
+            tag_depress: "抑郁倾向", tag_denial: "否认病情", tag_fear: "严重恐惧复发",
+            tag_cog: "轻度认知障碍", tag_sleep: "睡眠障碍", tag_opt: "乐观配合", tag_depend: "依赖性强",
+            tag_low_edu: "低文化程度", tag_canton: "方言(粤语)", tag_hakka: "方言(客家)", tag_alone: "独居/无照护",
+            tag_poor: "经济困难", tag_relig: "有宗教信仰", tag_remote: "异地就医", tag_family: "家属代管",
+            tag_video: "偏好短视频", tag_graphic: "偏好大字图文", tag_audio: "偏好语音/播客", tag_data: "关注生存数据",
+            tag_expert: "迷信权威专家", tag_story: "关注病友故事",
+            menu_dashboard: "工作台",
+            menu_patients: "患者管理",
+            menu_prescription: "数字处方开具",
+            menu_knowledge: "知识库 (PKU)",
+            doc_name: "黎医生",
+            hospital_name: "北大肿瘤医院"
+        },
+        en: {
+            dashboard: "Dashboard", patients: "Patients", prescription: "Create Rx", knowledge: "Knowledge Base",
+            page_title: "Patient Lifecycle Mgmt", // 英文标题
+            btn_add: "Add Patient", 
+            filter_btn: "Filter Persona", 
+            search_ph: "Search Name / ID...",
+            ph_name_ex: "E.g. John Doe",
+            ph_id_auto: "System Generated",
+            // Filter Menu
+            filter_title: "Filter by Tag",
+            tag_anxiety: "High Anxiety", tag_elder: "Elderly", tag_dialect: "Dialect User",
+            filter_clear: "Clear Filters",
+
+            // Table Header
+            th_info: "Patient Info", th_diag: "Diagnosis", th_tags: "AI Persona Tags", th_comp: "Adherence", th_action: "Action",
+            btn_prescribe: "Prescribe",
+
+            // Modal - Base
+            modal_title: "Register New Patient",
+            lbl_base_info: "Clinical Information", lbl_name: "Name", lbl_id: "Medical ID", lbl_diag: "Diagnosis", lbl_stage: "Stage",
+            
+            // Modal - Select Options (Trans)
+            opt_esop: "Esophageal SCC", opt_lung: "NSCLC", opt_gas: "Gastric Cancer", opt_col: "Colorectal Cancer", opt_bre: "Breast Cancer",
+            opt_s1: "Post-op Recovery (W1)", opt_s2: "Perioperative Chemo", opt_s3: "Radiotherapy", opt_s4: "Targeted Therapy", opt_s5: "Palliative Care",
+
+            // Modal - Persona
+            lbl_ai_persona: "AI Persona Assessment",
+            sec_psych: "Psychology & Cognition", sec_social: "Social Attributes", sec_pref: "Content Preferences",
+            btn_cancel: "Cancel", btn_save: "Save & Add",
+
+            // Tags
+            tag_depress: "Depression", tag_denial: "Denial", tag_fear: "Fear of Recurrence",
+            tag_cog: "Mild Cog. Impairment", tag_sleep: "Sleep Disorder", tag_opt: "Optimistic", tag_depend: "High Dependency",
+            tag_low_edu: "Low Education", tag_canton: "Dialect (Cantonese)", tag_hakka: "Dialect (Hakka)", tag_alone: "Living Alone",
+            tag_poor: "Financial Hardship", tag_relig: "Religious", tag_remote: "Non-local", tag_family: "Managed by Family",
+            tag_video: "Prefers Video", tag_graphic: "Prefers Graphics", tag_audio: "Prefers Audio", tag_data: "Data Focused",
+            tag_expert: "Authority Oriented", tag_story: "Patient Stories",
+            menu_dashboard: "Dashboard",
+            menu_patients:  "Patients",
+            menu_prescription:  "Create Prescription",
+            menu_knowledge: "Knowledge Base",
+            doc_name: "Dr. Li",
+            hospital_name:"PKU Cancer Hospital"
+        }
+    };
+
+    // 标签翻译映射表 (中文 -> 英文)
+    const tagMap = {
+        "高焦虑": "High Anxiety", "高焦虑状态": "High Anxiety",
+        "小学学历": "Low Edu", "低文化程度": "Low Edu",
+        "视觉偏好": "Visual Pref", "偏好短视频": "Visual Pref",
+        "情绪稳定": "Stable Mood", "乐观配合": "Optimistic",
+        "方言(粤语)": "Cantonese", "独居老人": "Living Alone", "独居/无照护": "Living Alone",
+        "高知群体": "High Edu", "关注数据": "Data Focus", "关注生存数据": "Data Focus",
+        "新录入": "New", "抑郁倾向": "Depression", "经济困难": "Low Income"
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyLanguage(currentLang);
+        renderTable();
+    });
+
+    // 3. 语言切换逻辑 (支持 Placeholder)
+    function toggleLang() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        localStorage.setItem('mediark_lang', currentLang);
+        applyLanguage(currentLang);
+        renderTable();
+    }
+
+    function applyLanguage(lang) {
+        document.getElementById('lang-display').innerText = lang === 'zh' ? 'English' : '中文';
+        
+        // 普通文本替换
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (i18n[lang][key]) el.innerText = i18n[lang][key];
+        });
+
+        // 占位符替换
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (i18n[lang][key]) el.placeholder = i18n[lang][key];
+        });
+    }
+
+    // 4. 表格渲染 (含删除按钮)
+    function renderTable() {
+        const tbody = document.getElementById('patient-table-body');
+        const searchInput = document.getElementById('search-input').value.toLowerCase();
+        tbody.innerHTML = '';
+
+        const filtered = patients.filter(p => {
+            const matchSearch = p.name.includes(searchInput) || p.id.includes(searchInput);
+            let matchFilter = true;
+            if (activeFilters.size > 0) {
+                matchFilter = false;
+                const pTagsStr = JSON.stringify(p.tags);
+                activeFilters.forEach(f => { if(pTagsStr.includes(f)) matchFilter = true; });
+            }
+            return matchSearch && matchFilter;
+        });
+
+        if(filtered.length === 0) document.getElementById('empty-state').classList.remove('hidden');
+        else document.getElementById('empty-state').classList.add('hidden');
+
+        filtered.forEach(p => {
+            const name = currentLang === 'zh' ? p.name : (p.name_en || p.name);
+            const diagnosis = currentLang === 'zh' ? p.diagnosis : (p.diagnosis_en || p.diagnosis);
+            const stage = currentLang === 'zh' ? p.stage : (p.stage_en || p.stage);
+            const visits = currentLang === 'zh' ? p.visits : (p.visits_en || p.visits);
+            const btnText = i18n[currentLang].btn_prescribe;
+            
+            let color = p.compliance < 50 ? (p.compliance < 20 ? 'bg-slate-300' : 'bg-orange-400') : 'bg-green-500';
+            let textColor = p.compliance < 50 ? 'text-orange-500' : 'text-green-600';
+            
+            const tagsHtml = p.tags.map(t => {
+                const rawText = (typeof t === 'object') ? t.text : t;
+                const text = currentLang === 'zh' ? rawText : (tagMap[rawText] || rawText);
+                const tColor = (typeof t === 'object') ? t.color : "bg-blue-50 text-blue-600";
+                return `<span class="inline-block px-2 py-0.5 rounded text-xs mr-1 mb-1 border border-transparent ${tColor}">${text}</span>`;
+            }).join('');
+
+            const link = `prescription.html?patientId=${p.id}&lang=${currentLang}`;
+
+            // 增加删除按钮
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 transition group">
+                    <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">${name.charAt(0)}</div><div><div class="font-bold text-slate-800">${name}</div><div class="text-xs text-slate-400">ID: ${p.id}</div></div></div></td>
+                    <td class="px-6 py-4"><div class="text-sm font-bold text-slate-700">${diagnosis}</div><div class="text-xs text-slate-500 mt-0.5">${stage}</div></td>
+                    <td class="px-6 py-4"><div class="flex flex-wrap">${tagsHtml}</div></td>
+                    <td class="px-6 py-4"><div class="flex flex-col w-32"><div class="flex items-center justify-between"><div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden mr-2"><div class="${color} h-full" style="width:${p.compliance}%"></div></div><span class="text-xs font-bold ${textColor}">${p.compliance}%</span></div><span class="text-[10px] text-slate-400 truncate">${visits}</span></div></td>
+                    <td class="px-6 py-4 text-right flex justify-end gap-2">
+                        <a href="${link}" class="inline-flex items-center gap-1 px-3 py-1.5 border border-blue-200 text-blue-600 rounded-md text-xs hover:bg-blue-600 hover:text-white transition shadow-sm"><i class="fa-solid fa-paper-plane"></i> ${btnText}</a>
+                        <button onclick="deletePatient('${p.id}')" class="inline-flex items-center justify-center w-8 h-8 border border-red-200 text-red-500 rounded-md text-xs hover:bg-red-50 transition" title="删除"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // --- 新增：删除功能 ---
+    function deletePatient(id) {
+        const confirmMsg = currentLang === 'zh' ? "确定要删除这位患者的档案吗？此操作无法撤销。" : "Are you sure? This cannot be undone.";
+        if(!confirm(confirmMsg)) return;
+        patients = patients.filter(p => p.id !== id);
+        localStorage.setItem('mediark_patients', JSON.stringify(patients));
+        renderTable();
+    }
+
+    // 其他原有逻辑 (筛选、模态框)
+    function toggleFilterMenu(e) { e.stopPropagation(); document.getElementById('filter-dropdown').classList.toggle('hidden'); }
+    function closeFilterMenuOutside(e) { if (!document.getElementById('filter-dropdown').contains(e.target) && !document.getElementById('filter-btn').contains(e.target)) document.getElementById('filter-dropdown').classList.add('hidden'); }
+    function handleFilterChange(val) { activeFilters.has(val) ? activeFilters.delete(val) : activeFilters.add(val); renderTable(); }
+    function clearFilters() { activeFilters.clear(); document.querySelectorAll('#filter-dropdown input').forEach(c=>c.checked=false); renderTable(); }
+    
+    const modal = document.getElementById('add-modal');
+    function openModal() { modal.classList.remove('opacity-0', 'pointer-events-none'); document.body.classList.add('modal-active'); }
+    function closeModal() { modal.classList.add('opacity-0', 'pointer-events-none'); document.body.classList.remove('modal-active'); }
+    
+    function saveNewPatient() {
+        const name = document.getElementById('input-name').value;
+        if(!name) { alert(currentLang==='zh'?"请输入姓名":"Please enter name"); return; }
+        const diagnosis = document.getElementById('input-diagnosis').value;
+        const stage = document.getElementById('input-stage').value;
+        const tags = [];
+        
+        document.querySelectorAll('#add-modal input[type="checkbox"]:checked').forEach(cb => {
+            let color = "bg-gray-100 text-slate-600";
+            if(cb.value.includes("焦虑") || cb.value.includes("恐惧")) color = "bg-red-50 text-red-600";
+            else if(cb.value.includes("视觉") || cb.value.includes("数据")) color = "bg-purple-50 text-purple-600";
+            else if(cb.value.includes("方言")) color = "bg-orange-50 text-orange-600";
+            else if(cb.value.includes("乐观") || cb.value.includes("配合")) color = "bg-green-50 text-green-600";
+            tags.push({ text: cb.value, color: color }); // 保存中文值
+        });
+        
+        if(tags.length === 0) tags.push({text:"新录入", color:"bg-blue-50 text-blue-600"});
+        const newId = "2025" + Math.floor(1000 + Math.random() * 9000);
+        
+        patients.unshift({
+            id: newId, 
+            name: name,               // -> real_name
+            name_en: name, 
+            diagnosis: diagnosis,     // -> diagnosis_main
+            diagnosis_en: diagnosis, 
+            stage: stage,             // -> treatment_stage
+            stage_en: stage,
+            tags: tags,               // -> persona_tags
+            compliance: 0,            // -> compliance_rate (Default: 0)
+            visits: currentLang==='zh'?"新录入":"New Entry", 
+            visits_en: "New Entry"
+        });
+        
+        localStorage.setItem('mediark_patients', JSON.stringify(patients)); // 保存！
+        renderTable();
+        closeModal();
+        document.getElementById('input-name').value = "";
+        document.querySelectorAll('#add-modal input[type="checkbox"]').forEach(c=>c.checked=false);
+    }
+</script>
+</body>
+</html>

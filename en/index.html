@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediArk - Next-Gen AI Oncology Platform</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <!-- 使用 Inter 字体，显得更国际化 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* 应用英文首选字体 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        html { scroll-behavior: smooth; }
+        
+        /* ======== 滚动吸附CSS ======== */
+        #scroll-container {
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            height: 100vh;
+        }
+        
+        #scroll-container > section {
+            scroll-snap-align: start;
+        }
+    </style>
+</head>
+<body>
+
+<header class="bg-white/90 backdrop-blur-sm shadow-sm fixed top-0 w-full z-50 transition-all duration-300">
+    <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+        
+  <!--   Logo 区域  -->
+        <div>
+            <a href="#hero" title="Back to Top" class="flex items-center gap-x-3 group">
+               <!--   注意路径 -->
+                <img class="h-10 w-auto group-hover:scale-105 transition-transform" src="../网页展示素材库/logo/logo.png" alt="MediArk Logo">
+                <span class="text-2xl font-bold text-blue-900 tracking-tight">MediArk</span>
+            </a>
+        </div>
+        
+
+        <!-- 导航菜单 (英文) -->
+        <div class="hidden md:flex space-x-8 text-lg font-medium text-slate-600">
+            <a href="#problem" class="hover:text-blue-700 transition-colors">Pain Points</a>
+            <a href="#solution" class="hover:text-blue-700 transition-colors">Solutions</a>
+            <a href="#features" class="hover:text-blue-700 transition-colors">Features</a>
+            <a href="#team" class="hover:text-blue-700 transition-colors">About Us</a>
+            <!-- 假设 library.html 也在 en 目录下 -->
+            <a href="library.html" class="hover:text-blue-700 transition-colors">Library</a>
+        </div>
+        
+        <!-- 按钮区域 -->
+        <div class="hidden md:flex items-center space-x-4">
+            <!-- 返回中文版按钮 -->
+            <a href="../index.html" class="px-6 py-2 font-semibold rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out">
+                中文 CN
+            </a>
+            <!-- App 入口 (跳回根目录的 app-ui.html) -->
+            <a href="../dashboard.html?lang=en" class="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transition-all">
+                Launch App
+            </a>
+        </div>
+
+    </nav>
+</header>
+
+<main id="scroll-container">
+        
+        <!-- 1. Hero Section (首页首屏) -->
+        <!-- 链接到 solution.html -->
+        <section id="hero" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('../网页展示素材库/图片1.png');">
+            <!-- 遮罩层加深一点，保证文字清晰 -->
+            <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="relative z-10 container mx-auto px-6">
+        
+                <!-- LOGO (已注释掉，如需显示请取消注释) -->
+                <!--
+                <div class="flex justify-center items-center gap-x-4 mb-8 -translate-y-16">
+                    <img src="../网页展示素材库/logo/logo.png" alt="MediArk Logo" class="w-auto -translate-y-8 drop-shadow-2xl" style="height: 250px;">
+                </div>
+                -->
+                
+                <h1 class="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-8 drop-shadow-lg">
+                    Next-Gen Multi-Modal <br>
+                    <span class="text-blue-400">AI Oncology Platform</span>
+                </h1>
+                
+                <p class="text-xl md:text-2xl text-gray-100 max-w-4xl mx-auto mb-12 font-light leading-relaxed">
+                    Bridging the gap between clinical oncology and patients worldwide with <span class="font-semibold text-white underline decoration-blue-400 decoration-4 underline-offset-4">accessible, trusted, and empathetic</span> AI technology
+                </p>
+
+                <!-- 这里的按钮直接跳转到 solution.html -->
+                <div class="flex justify-center gap-6">
+                    <a href="solution.html" class="bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-blue-700 transition hover:scale-105 shadow-lg">
+                        Explore Solutions
+                    </a>
+                    <a href="problem.html" class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-white hover:text-blue-900 transition hover:scale-105">
+                        View Pain Points
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Problem Section (痛点) -->
+        <!-- 链接到 problem.html -->
+        <section id="problem" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('../网页展示素材库/problem.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-60"></div> 
+            <div class="relative z-10 container mx-auto px-6">
+                <h2 class="text-5xl md:text-6xl font-bold text-white mb-6">The Global Communication Gap</h2>
+                <p class="mt-6 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed mb-10">
+                    Patients face a <span class="font-bold text-white">"Triple Dilemma"</span>: Cognitive Barriers, Rigid Formats, and Low Efficiency <br>
+                    We leverage AI to dismantle these barriers and democratize medical knowledge
+                </p>
+                <!-- 按钮 -->
+                 <a href="problem.html" class="inline-block font-bold text-white border-2 border-white px-10 py-3 rounded-full hover:bg-white hover:text-blue-900 transition duration-300 text-lg backdrop-blur-sm">
+                    Read More About Pain Points &rarr;
+                 </a>
+            </div>
+        </section>
+
+        <!-- 3. Solution Section (解决方案) -->
+        <!-- 链接到 solution.html -->
+        <section id="solution" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('../网页展示素材库/solution.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="relative z-10 container mx-auto px-6">
+                <h2 class="text-5xl md:text-6xl font-bold text-white mb-6">Human-AI Collaboration</h2>
+                <p class="mt-6 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed mb-10">
+                    Pioneering the <span class="text-blue-300 font-bold">"Dual-Engine"</span> model: Generative AI efficiency + Authoritative Expert Review<br>
+                    Reshaping the production and dissemination of oncology science
+                </p>
+                <!-- 按钮 -->
+                <a href="solution.html" class="inline-block font-bold text-white border-2 border-white px-10 py-3 rounded-full hover:bg-white hover:text-blue-900 transition duration-300 text-lg backdrop-blur-sm">
+                    See Our Solutions &rarr;
+                </a>
+            </div>
+        </section>
+
+        <!-- 4. Features Section (核心功能) -->
+        <!-- 链接到 features.html -->
+        <section id="features" class="relative h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('../网页展示素材库/features-en.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="relative z-10 container mx-auto px-6">
+                <h2 class="text-5xl md:text-6xl font-bold text-white mb-6">All-in-One Platform</h2>
+                <p class="mt-6 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed mb-10">
+                    From Smart Content Generation to Authoritative Verification and Patient Assistance<br>
+                    Empowering every step of the doctor-patient communication journey
+                </p>
+                <!-- 按钮 -->
+                <a href="features.html" class="inline-block font-bold text-white border-2 border-white px-10 py-3 rounded-full hover:bg-white hover:text-blue-900 transition duration-300 text-lg backdrop-blur-sm">
+                    Explore Core Features &rarr;
+                </a>
+            </div>
+        </section>
+        
+        <!-- 5. Team Section (团队) -->
+        <!-- 链接到 team.html -->
+        <section id="team" class="h-screen flex flex-col relative bg-cover bg-center" style="background-image: url('../网页展示素材库/team-bg.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="flex-grow flex items-center justify-center text-center relative z-10 container mx-auto px-6">
+                <div>
+                    <h2 class="text-5xl md:text-6xl font-bold text-white mb-6">Carrying the Torch of Hope</h2>
+                    <p class="mt-6 text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed mb-10">
+                        We are an interdisciplinary team of experts in <span class="font-bold text-blue-300">Medicine, Engineering, and Media</span>.<br>
+                        Dedicated to lighting the path for cancer patients with technology and compassion
+                    </p>
+                    <!-- 按钮 -->
+                    <a href="team.html" class="inline-block font-bold text-white border-2 border-white px-10 py-3 rounded-full hover:bg-white hover:text-blue-900 transition duration-300 text-lg backdrop-blur-sm">
+                        Meet the Team &rarr;
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <footer class="bg-blue-900/90 text-white py-8 w-full relative z-10 backdrop-blur-md">
+                <div class="container mx-auto px-6 text-center">
+                    <p class="text-xl font-bold tracking-wider">MediArk</p>
+                    <p class="mt-2 text-blue-200 text-sm">Becoming the "Noah's Ark" for global oncology cognitive health</p>
+                    <p class="mt-4 text-xs text-blue-400">© 2026 MediArk Project. All Rights Reserved</p>
+                </div>
+            </footer>
+        </section>
+    </main>
+
+    <script> AOS.init({ duration: 1000, once: true, disable: 'mobile' }); </script>
+</body>
+</html>

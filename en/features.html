@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Features - MediArk</title> 
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <!-- 使用 Inter 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-white">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div>
+                <a href="index.html" title="Back to Home" class="flex items-center gap-x-3">
+                    <!-- Logo 路径 -->
+                    <img class="h-12 w-auto" src="../网页展示素材库/logo/logo.png" alt="MediArk Logo">
+                    <span class="text-2xl font-bold text-blue-800">MediArk</span>
+                </a>
+            </div>
+            <!-- 导航菜单 -->
+            <div class="hidden md:flex space-x-8 text-lg font-medium text-slate-600">
+                <a href="index.html" class="hover:text-blue-700">Home</a>
+                <a href="problem.html" class="hover:text-blue-700">Pain Points</a>
+                <a href="solution.html" class="hover:text-blue-700">Solutions</a>
+                <a href="features.html" class="text-blue-700 font-bold">Features</a>
+                <a href="library.html" class="hover:text-blue-700">Library</a>
+                <a href="team.html" class="hover:text-blue-700">About Us</a>
+            </div>
+            <!-- 右侧按钮 -->
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="../index.html" class="px-4 py-2 font-semibold rounded-full border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors text-sm">
+                    中文 CN
+                </a>
+                <a href="../app-ui.html" class="hidden md:block bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700 transition-all">
+                    Launch App
+                </a>
+            </div>
+        </nav>
+    </header>
+
+<main>
+    <!-- 1. 主标题区域 -->
+    <section class="bg-slate-50 py-20">
+        <div class="container mx-auto px-6 text-center" data-aos="fade-up">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-800">All-in-One Intelligent Platform</h1>
+            <p class="mt-6 text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                Five Core Capabilities: Empowering Doctors, Engaging Patients, and Advancing Science. <br>
+                A full-link intelligent solution from content generation to patient guardianship
+            </p>
+        </div>
+    </section>
+
+    <div class="py-20 space-y-20 md:space-y-32">
+
+        <!-- Feature 01 -->
+        <section class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div data-aos="fade-right">
+                <!-- 注意图片路径 ../ -->
+                <img src="../网页展示素材库/features/智能科普生成.png" alt="AI Content Generation" class="w-full rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            </div>
+            <div data-aos="fade-left">
+                <h2 class="text-4xl font-bold text-blue-800">01. Smart Content Generation</h2>
+                <p class="mt-6 text-slate-600 leading-relaxed text-lg">
+                    Leveraging Generative AI and medical knowledge graphs, MediArk rapidly creates personalized content tailored to patient literacy levels <br><br>
+                    Supports <strong>one-click multi-modal output</strong> (text, short videos, comics, interactive graphics), significantly boosting production efficiency
+                </p>
+            </div>
+        </section>
+
+        <!-- Feature 02 -->
+        <section class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div data-aos="fade-left" class="md:order-last">
+                <!-- 注意图片路径 ../ -->
+                <img src="../网页展示素材库/features/权威审核闭环.png" alt="Expert Verification" class="w-full rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            </div>
+            <div data-aos="fade-right">
+                <h2 class="text-4xl font-bold text-blue-800">02. Authoritative Verification Loop</h2>
+                <p class="mt-6 text-slate-600 leading-relaxed text-lg">
+                    In deep collaboration with <strong>Peking University Cancer Hospital</strong>, every piece of AI-generated content undergoes strict multi-level review by top experts <br><br>
+                    This "Human-AI Collaboration" ensures scientific accuracy and safety, building absolute trust with patients
+                </p>
+            </div>
+        </section>
+
+        <!-- Feature 03 -->
+        <section class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div data-aos="fade-right">
+                <!-- 注意图片路径 ../ -->
+                <img src="../网页展示素材库/features/患者健康助手.png" alt="AI Patient Assistant" class="w-full rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            </div>
+            <div data-aos="fade-left">
+                <h2 class="text-4xl font-bold text-blue-800">03. AI Patient Assistant</h2>
+                <p class="mt-6 text-slate-600 leading-relaxed text-lg">
+                    A personalized, conversational AI health companion <br><br>
+                    Supports full-course services including hospital navigation, medication reminders, and rehabilitation guidance, becoming a trusted digital partner for patients
+                </p>
+            </div>
+        </section>
+
+        <!-- Feature 04 -->
+        <section class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div data-aos="fade-left" class="md:order-last">
+                <!-- 注意图片路径 ../ -->
+                <img src="../网页展示素材库/features/临床应用对接.png" alt="Clinical Integration" class="w-full rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            </div>
+            <div data-aos="fade-right">
+                <h2 class="text-4xl font-bold text-blue-800">04. Seamless Clinical Integration</h2>
+                <p class="mt-6 text-slate-600 leading-relaxed text-lg">
+                    Our platform seamlessly connects with clinical workflows (Outpatient, Inpatient, Follow-up) <br><br>
+                    Doctors can prescribe "Scenario-based Educational Plans" directly to patients, integrating education into the treatment process
+                </p>
+            </div>
+        </section>
+
+        <!-- Feature 05 -->
+        <section class="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+            <div data-aos="fade-right">
+                <!-- 注意图片路径 ../ -->
+                <img src="../网页展示素材库/features/数据与知识平台.png" alt="Data Platform" class="w-full rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            </div>
+            <div data-aos="fade-left">
+                <h2 class="text-4xl font-bold text-blue-800">05. Knowledge & Data Platform</h2>
+                <p class="mt-6 text-slate-600 leading-relaxed text-lg">
+                    Building a structured oncology knowledge base and a national asset library <br><br>
+                    Supporting multiple scenarios including research translation, public health education, and government health campaigns
+                </p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- CTA -->
+    <section class="py-20 bg-slate-50">
+        <div class="container mx-auto px-6 text-center" data-aos="fade-up">
+            <h2 class="text-3xl font-bold text-slate-800">Ready to reshape doctor-patient communication</h2>
+            <a href="../dashboard.html?lang=en" class="mt-10 inline-block font-bold bg-blue-700 text-white px-10 py-4 rounded-full hover:bg-blue-800 transition transform hover:scale-105 text-lg shadow-lg">
+                Launch App Demo &rarr;
+            </a>
+        </div>
+    </section>
+</main>
+
+    <footer class="bg-slate-900 text-white py-10 border-t border-slate-800">
+        <div class="container mx-auto px-6 text-center">
+             <p class="text-xl font-bold tracking-wide">MediArk</p>
+             <p class="mt-2 text-slate-400">The "Noah's Ark" for Oncology Cognitive Health</p>
+             <p class="mt-6 text-slate-600 text-sm">© 2026 MediArk Team. All rights reserved</p>
+        </div>
+    </footer>
+    
+    <script> AOS.init({ duration: 800, once: true }); </script>
+</body>
+</html>

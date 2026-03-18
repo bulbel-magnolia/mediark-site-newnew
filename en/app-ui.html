@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediArk Doctor Workbench - 智瘤方舟医生工作台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入谷歌字体 Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+        /* 隐藏滚动条但允许滚动 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 模拟AI生成的打字机光标效果 */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        
+        .step-active { @apply border-blue-600 text-blue-700 font-bold; }
+        .step-inactive { @apply border-gray-200 text-gray-400; }
+        .step-completed { @apply border-green-500 text-green-600; }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden">
+
+    <!-- 左侧边栏 Sidebar -->
+    <aside class="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <img src="../网页展示素材库/logo/logo.png" class="h-8 w-auto bg-white rounded-full p-1" alt="Logo">
+            <span class="font-bold text-lg tracking-wide">MediArk</span>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+                    <!-- 1. 工作台链接 -->
+                    <a href="../dashboard.html?lang=en" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                        <i class="fa-solid fa-chart-pie w-5"></i>
+                        <span data-i18n="dashboard">工作台</span>
+                    </a>
+                    <!-- 2. 患者管理链接 -->
+                    <a href="../patients.html?lang=en" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                        <i class="fa-solid fa-user-group w-5"></i>
+                        <span data-i18n="patients">患者管理</span>
+                    </a>
+                    <!-- 3. 数字处方 (当前页，高亮) -->
+                    <a href="../prescription.html?lang=en" class="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-900/50 transition">
+                        <i class="fa-solid fa-file-prescription w-5"></i>
+                        <span data-i18n="prescription">数字处方开具</span>
+                    </a>
+                    <!-- 4. 知识库链接 -->
+                    <a href="../knowledge.html?lang=en" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                        <i class="fa-solid fa-book-medical w-5"></i>
+                        <span data-i18n="knowledge">知识库 (PKU)</span>
+                    </a>
+                </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold">L</div>
+                <div>
+                    <p class="text-sm font-medium" data-i18n="doctor_name">黎医生</p>
+                    <p class="text-xs text-slate-400" data-i18n="hospital_name">北大肿瘤医院</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 Main Content -->
+    <main class="flex-1 flex flex-col h-screen relative">
+        
+        <!-- 顶部导航 Topbar -->
+        <header class="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-20">
+            <h1 class="text-xl font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-blue-600"></i>
+                <span data-i18n="page_title">新建科普数字处方</span>
+            </h1>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleLang()" class="px-3 py-1 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 transition">
+                    <i class="fa-solid fa-globe mr-2 text-slate-500"></i><span id="lang-display">English</span>
+                </button>
+                <a href="index.html" class="text-slate-500 hover:text-blue-600 transition" title="退出演示">
+                    <i class="fa-solid fa-right-from-bracket text-xl"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- 核心工作区 Workspace -->
+        <div class="flex-1 overflow-y-auto p-8 relative bg-slate-50">
+            
+            <!-- 步骤条 Step Indicator -->
+            <div class="max-w-5xl mx-auto mb-10">
+                <div class="flex items-center justify-between relative">
+                    <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
+                    
+                    <!-- Step 1 -->
+                    <div id="step-indicator-1" class="flex flex-col items-center gap-2 bg-slate-50 px-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border-4 border-slate-50 shadow-md">1</div>
+                        <span class="text-sm font-semibold text-blue-700" data-i18n="step1">患者画像评估</span>
+                    </div>
+                    <!-- Step 2 -->
+                    <div id="step-indicator-2" class="flex flex-col items-center gap-2 bg-slate-50 px-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold border-4 border-slate-50 transition-all duration-500">2</div>
+                        <span class="text-sm font-medium text-gray-500" data-i18n="step2">AI生成与审核</span>
+                    </div>
+                    <!-- Step 3 -->
+                    <div id="step-indicator-3" class="flex flex-col items-center gap-2 bg-slate-50 px-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold border-4 border-slate-50 transition-all duration-500">3</div>
+                        <span class="text-sm font-medium text-gray-500" data-i18n="step3">处方交付</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤 1：患者信息输入 (Step 1: Input) -->
+            <div id="step-1-content" class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden transition-all duration-500">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h2 class="text-lg font-bold text-slate-800" data-i18n="patient_info_title">录入患者信息</h2>
+                    <p class="text-sm text-slate-500 mt-1" data-i18n="patient_info_desc">AI 将根据这些信息生成个性化科普内容</p>
+                </div>
+                <div class="p-8 grid md:grid-cols-2 gap-8">
+                    <!-- 左侧：基础信息 -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2" data-i18n="diagnosis">临床诊断</label>
+                            <select class="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border bg-white">
+                                <option value="ec" selected data-i18n="opt_ec">食管鳞状细胞癌 (术后1周)</option>
+                                <option value="lc" data-i18n="opt_lc">非小细胞肺癌</option>
+                                <option value="gc" data-i18n="opt_gc">胃癌</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2" data-i18n="edu_level">患者受教育程度 (影响内容通俗度)</label>
+                            <select class="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border bg-white">
+                                <option value="low" selected data-i18n="opt_primary">小学及以下 (需极通俗/多图)</option>
+                                <option value="mid" data-i18n="opt_high">中学/中专</option>
+                                <option value="high" data-i18n="opt_uni">大学及以上</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 右侧：心理画像 -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2" data-i18n="focus">科普重点</label>
+                            <div class="flex flex-wrap gap-2">
+                                <!-- 1. 加上了 data-i18n="tag_diet" -->
+                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm border border-blue-200 cursor-pointer" data-i18n="tag_diet">术后饮食</span>
+                                <!-- 2. 加上了 data-i18n="tag_swallow" -->
+                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm border border-blue-200 cursor-pointer" data-i18n="tag_swallow">吞咽训练</span>
+                                <!-- 3. 加上了 data-i18n="tag_radio" -->
+                                <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm border border-slate-200 cursor-pointer hover:bg-blue-50" data-i18n="tag_radio">放疗护理</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2" data-i18n="mood">患者情绪状态 (AI将调整语气)</label>
+                            <div class="flex items-center gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="mood" class="text-blue-600" checked>
+                                    <span class="text-sm text-slate-600" data-i18n="mood_anxious">焦虑/恐惧</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="mood" class="text-blue-600">
+                                    <span class="text-sm text-slate-600" data-i18n="mood_calm">平静/接受</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button onclick="goToStep2()" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span data-i18n="btn_generate">生成科普处方</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤 2：AI生成与审核 (Step 2: AI & Review) -->
+            <div id="step-2-content" class="hidden max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 h-[600px]">
+                
+                <!-- 左侧：AI 生成区 -->
+                <div class="bg-white rounded-xl shadow-lg border border-slate-200 flex flex-col relative overflow-hidden">
+                    <!-- AI Loading 遮罩 -->
+                    <div id="ai-loader" class="absolute inset-0 bg-white/90 z-10 flex flex-col items-center justify-center">
+                        <div class="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                        <p class="text-blue-800 font-semibold animate-pulse" data-i18n="ai_status_1">正在连接北大肿瘤医院知识库...</p>
+                        <p class="text-slate-500 text-sm mt-2" id="ai-sub-status">Matching Patient Persona...</p>
+                    </div>
+
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-white">
+                        <div class="flex items-center gap-2 text-blue-800">
+                            <i class="fa-solid fa-robot"></i>
+                            <span class="font-bold" data-i18n="ai_output_title">AI 生成初稿</span>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200" data-i18n="tag_personalized">已个性化适配</span>
+                    </div>
+                    
+                    <div class="flex-1 p-6 overflow-y-auto font-sans text-slate-700 leading-relaxed">
+                        <div id="ai-text-area" class="prose prose-blue max-w-none">
+                            <!-- AI文字将在这里逐字显示 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：专家审核区 -->
+                <div class="bg-white rounded-xl shadow-lg border border-slate-200 flex flex-col">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                        <div class="flex items-center gap-2 text-slate-700">
+                            <i class="fa-solid fa-user-doctor"></i>
+                            <span class="font-bold" data-i18n="review_title">专家审核与修改</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-slate-600 transition">
+                                <i class="fa-solid fa-pen-to-square mr-1"></i> <span data-i18n="btn_edit">编辑</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 bg-slate-50 p-6 flex flex-col items-center justify-center text-center">
+                        <div id="preview-placeholder" class="opacity-50">
+                            <i class="fa-regular fa-file-video text-6xl text-slate-300 mb-4"></i>
+                            <p class="text-slate-500" data-i18n="waiting_msg">等待 AI 生成脚本后预览...</p>
+                        </div>
+                        
+                        <!-- 生成完成后的预览卡片 (初始隐藏) -->
+                        <div id="generated-media" class="hidden w-full">
+                            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-4 text-left flex gap-4">
+                                <div class="w-32 h-20 bg-slate-200 rounded flex-shrink-0 overflow-hidden relative group cursor-pointer">
+                                    <img src="../网页展示素材库/solution/双轮驱动方案.png" class="w-full h-full object-cover" alt="Thumbnail">
+                                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition">
+                                        <i class="fa-solid fa-play"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm" data-i18n="video_title">食管癌术后饮食指南.mp4</h4>
+                                    <p class="text-xs text-slate-500 mt-1">时长: 01:30 | 包含方言: 普通话</p>
+                                    <div class="mt-2 flex gap-2">
+                                        <span class="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full">通俗易懂</span>
+                                        <span class="text-[10px] px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">重点强调</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 border-t border-slate-100 bg-white">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved text-green-500"></i>
+                                <span class="text-sm font-medium text-slate-600" data-i18n="verify_status">知识库自动校验通过</span>
+                            </div>
+                        </div>
+                        <button id="btn-approve" onclick="goToStep3()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fa-solid fa-check-circle mr-2"></i>
+                            <span data-i18n="btn_approve">确认审核并生成处方</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 步骤 3：处方交付 (Step 3: Delivery) -->
+            <div id="step-3-content" class="hidden max-w-3xl mx-auto text-center pt-10">
+                <div class="bg-white p-10 rounded-2xl shadow-2xl border border-slate-100 inline-block w-full relative overflow-hidden">
+                    <!-- 装饰背景 -->
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    
+                    <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 animate-bounce">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2" data-i18n="success_title">数字科普处方已开具</h2>
+                    <p class="text-slate-500 mb-8" data-i18n="success_desc">已通过微信服务号推送给患者（张建国），并同步至医院随访系统。</p>
+                    
+                    <div class="bg-slate-50 rounded-xl p-6 border border-dashed border-slate-300 flex flex-col md:flex-row items-center gap-8 text-left">
+                        <div class="bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                            <!-- 模拟二维码 -->
+                            <div class="w-32 h-32 bg-slate-800 flex items-center justify-center text-white text-xs text-center p-2">
+                                [QR Code Mockup]
+                                <br>Scan to View
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg text-slate-800 mb-2">Rx: 食管癌术后第一周康复指南</h3>
+                            <ul class="space-y-2 text-sm text-slate-600">
+                                <li><i class="fa-solid fa-video text-blue-500 w-6"></i> <span data-i18n="rx_item1">科普短视频：如何正确进行吞咽训练</span></li>
+                                <li><i class="fa-solid fa-book-open text-green-500 w-6"></i> <span data-i18n="rx_item2">漫画图解：少食多餐的六个原则</span></li>
+                                <li><i class="fa-solid fa-bell text-orange-500 w-6"></i> <span data-i18n="rx_item3">AI 助手每日饮食打卡提醒</span></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex justify-center gap-4">
+                        <button onclick="location.reload()" class="px-6 py-2 text-slate-500 hover:text-slate-700 font-medium transition">
+                            <span data-i18n="btn_new">开具下一张</span>
+                        </button>
+                        <button class="px-8 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg transition">
+                            <span data-i18n="btn_print">打印纸质版</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- 国际化字典 ---
+// --- 国际化字典 ---
+        const i18n = {
+            zh: {
+                dashboard: "工作台", patients: "患者管理", prescription: "数字处方开具", knowledge: "知识库 (PKU)",
+                doctor_name: "黎医生", hospital_name: "北大肿瘤医院 · 食管肿瘤科",
+                page_title: "新建科普数字处方",
+                step1: "患者画像评估", step2: "AI生成与审核", step3: "处方交付",
+                patient_info_title: "录入患者信息", patient_info_desc: "AI 将根据这些信息生成个性化科普内容",
+                diagnosis: "临床诊断", opt_ec: "食管鳞状细胞癌 (术后1周)", opt_lc: "非小细胞肺癌", opt_gc: "胃癌",
+                edu_level: "患者受教育程度 (影响内容通俗度)", opt_primary: "小学及以下 (需极通俗/多图)", opt_high: "中学/中专", opt_uni: "大学及以上",
+                focus: "科普重点", mood: "患者情绪状态 (AI将调整语气)", mood_anxious: "焦虑/恐惧", mood_calm: "平静/接受",
+                
+                // === 新增的标签翻译 ===
+                tag_diet: "术后饮食", tag_swallow: "吞咽训练", tag_radio: "放疗护理",
+                // ====================
+
+                btn_generate: "生成科普处方",
+                ai_status_1: "正在连接北大肿瘤医院知识库...", ai_output_title: "AI 生成初稿", tag_personalized: "已个性化适配",
+                review_title: "专家审核与修改", btn_edit: "编辑", waiting_msg: "等待 AI 生成脚本后预览...",
+                video_title: "食管癌术后饮食指南.mp4", verify_status: "知识库自动校验通过", btn_approve: "确认审核并生成处方",
+                success_title: "数字科普处方已开具", success_desc: "已通过微信服务号推送给患者（张建国），并同步至医院随访系统。",
+                rx_item1: "科普短视频：如何正确进行吞咽训练", rx_item2: "漫画图解：少食多餐的六个原则", rx_item3: "AI 助手每日饮食打卡提醒",
+                btn_new: "开具下一张", btn_print: "打印纸质版"
+            },
+            en: {
+                dashboard: "Dashboard", patients: "Patients", prescription: "Create Prescription", knowledge: "Knowledge Base",
+                doctor_name: "Dr. Li", hospital_name: "PKU Cancer Hospital",
+                page_title: "New Digital Prescription",
+                step1: "Patient Assessment", step2: "AI Generation & Review", step3: "Delivery",
+                patient_info_title: "Patient Information", patient_info_desc: "AI generates personalized content based on this data.",
+                diagnosis: "Clinical Diagnosis", opt_ec: "Esophageal SCC (Post-op W1)", opt_lc: "NSCLC", opt_gc: "Gastric Cancer",
+                edu_level: "Education Level (Adapts Complexity)", opt_primary: "Primary School (Visual/Simple)", opt_high: "High School", opt_uni: "University",
+                focus: "Focus Area", mood: "Emotional State (Adapts Tone)", mood_anxious: "Anxious/Fearful", mood_calm: "Calm/Accepting",
+                
+                // === 新增的标签翻译 ===
+                tag_diet: "Post-op Diet", tag_swallow: "Swallowing Training", tag_radio: "Radiotherapy Care",
+                // ====================
+
+                btn_generate: "Generate Content",
+                ai_status_1: "Accessing Clinical Guidelines...", ai_output_title: "AI Generated Draft", tag_personalized: "Personalized",
+                review_title: "Expert Review", btn_edit: "Edit", waiting_msg: "Waiting for AI generation...",
+                video_title: "Post-op Diet Guide.mp4", verify_status: "Verified against Knowledge Graph", btn_approve: "Approve & Issue",
+                success_title: "Prescription Issued", success_desc: "Sent to patient (Zhang) via WeChat and synced to follow-up system.",
+                rx_item1: "Video: Correct Swallowing Techniques", rx_item2: "Comic: 6 Rules of Small Meals", rx_item3: "AI Assistant: Daily Diet Reminders",
+                btn_new: "Create New", btn_print: "Print PDF"
+            }
+        };
+
+        let currentLang = 'zh';
+
+        // --- 切换语言功能 ---
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('lang-display').innerText = currentLang === 'zh' ? 'English' : '中文';
+            
+            // 遍历替换所有带 data-i18n 的元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[currentLang][key]) {
+                    el.innerText = i18n[currentLang][key];
+                }
+            });
+        }
+
+        // --- 交互逻辑 ---
+        
+        function goToStep2() {
+            // 1. 隐藏 Step 1，显示 Step 2
+            document.getElementById('step-1-content').classList.add('hidden');
+            document.getElementById('step-2-content').classList.remove('hidden');
+            
+            // 2. 更新步骤条样式
+            updateStepIndicator(2);
+
+            // 3. 开始模拟 AI 生成过程
+            simulateAIGeneration();
+        }
+
+        function simulateAIGeneration() {
+            const loader = document.getElementById('ai-loader');
+            const subStatus = document.getElementById('ai-sub-status');
+            const textArea = document.getElementById('ai-text-area');
+            const approveBtn = document.getElementById('btn-approve');
+            const generatedMedia = document.getElementById('generated-media');
+            const placeholder = document.getElementById('preview-placeholder');
+
+            // 模拟几个加载阶段
+            setTimeout(() => {
+                subStatus.innerText = currentLang === 'zh' ? "正在生成个性化脚本..." : "Generating personalized script...";
+            }, 1500);
+
+            setTimeout(() => {
+                subStatus.innerText = currentLang === 'zh' ? "正在合成多模态视频..." : "Synthesizing multi-modal video...";
+            }, 3000);
+
+            setTimeout(() => {
+                // 隐藏 Loading
+                loader.classList.add('hidden');
+                
+                // 显示 AI 生成的文字 (打字机效果模拟)
+                const textZH = `
+                    <p class="mb-4 text-lg font-bold">亲爱的张大爷：</p>
+                    <p class="mb-4">手术非常成功！现在的关键是<span class="bg-yellow-100 px-1">“怎么吃”</span>。因为您的食管刚做完“大扫除”，它现在像婴儿一样娇嫩。</p>
+                    <ul class="list-disc pl-5 mb-4 space-y-2">
+                        <li><strong>第一周原则：</strong> 只能喝像水一样的液体（米汤、过滤的果汁）。千万别吃渣！</li>
+                        <li><strong>少食多餐：</strong> 一天吃6-8顿，每顿喝半杯水那么多就行。</li>
+                        <li><strong>吞咽技巧：</strong> 喝完坐着或者站着30分钟，别马上躺下，防止反流。</li>
+                    </ul>
+                    <p class="text-sm text-gray-500">（AI提示：已检测到患者焦虑情绪，文案已调整为鼓励性语气。）</p>
+                `;
+                
+                const textEN = `
+                    <p class="mb-4 text-lg font-bold">Dear Mr. Zhang:</p>
+                    <p class="mb-4">The surgery was a success! Now, <span class="bg-yellow-100 px-1">"How to Eat"</span> is crucial. Your esophagus is healing and needs gentle care.</p>
+                    <ul class="list-disc pl-5 mb-4 space-y-2">
+                        <li><strong>Week 1 Rule:</strong> Clear liquids only (rice water, filtered juice). No solids!</li>
+                        <li><strong>Small & Frequent:</strong> 6-8 meals a day, half a cup each time.</li>
+                        <li><strong>Swallowing Tip:</strong> Stay upright for 30 mins after eating. Do not lie down immediately.</li>
+                    </ul>
+                    <p class="text-sm text-gray-500">(AI Note: Anxiety detected. Tone adjusted to be encouraging.)</p>
+                `;
+
+                textArea.innerHTML = currentLang === 'zh' ? textZH : textEN;
+                
+                // 显示右侧生成的多媒体预览
+                placeholder.classList.add('hidden');
+                generatedMedia.classList.remove('hidden');
+                
+                // 激活审核按钮
+                approveBtn.disabled = false;
+                
+            }, 4500);
+        }
+
+        function goToStep3() {
+            // 隐藏 Step 2, 显示 Step 3
+            document.getElementById('step-2-content').classList.add('hidden');
+            document.getElementById('step-3-content').classList.remove('hidden');
+            
+            // 更新步骤条
+            updateStepIndicator(3);
+        }
+
+        function updateStepIndicator(step) {
+            const s1 = document.getElementById('step-indicator-1').querySelector('div');
+            const s2 = document.getElementById('step-indicator-2').querySelector('div');
+            const s3 = document.getElementById('step-indicator-3').querySelector('div');
+
+            // Reset styling
+            const activeClass = "bg-blue-600 text-white border-blue-600";
+            const inactiveClass = "bg-gray-200 text-gray-500 border-slate-50";
+            const completedClass = "bg-green-500 text-white border-green-500";
+
+            if (step === 2) {
+                s1.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-500 ${completedClass}`;
+                s1.innerHTML = '<i class="fa-solid fa-check"></i>';
+                
+                s2.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-500 ${activeClass}`;
+            } else if (step === 3) {
+                s2.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-500 ${completedClass}`;
+                s2.innerHTML = '<i class="fa-solid fa-check"></i>';
+                
+                s3.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-500 ${activeClass}`;
+            }
+        }
+
+        // 初始化语言
+        // toggleLang(); // Uncomment to start in English for testing
+    </script>
+</body>
+</html>
