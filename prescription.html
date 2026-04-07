@@ -140,44 +140,58 @@
                         <input type="text" id="work-title" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border bg-white" placeholder="例如：张建国术后第一周饮食指南">
                     </div>
 
-                    <!-- 科普重点 -->
+                    <!-- 科普重点（自由输入标签） -->
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-3"><i class="fa-solid fa-bullseye text-blue-500 mr-1"></i> 本次科普重点 (多选)</label>
-                        <div id="focus-topics" class="flex flex-wrap gap-3">
-                            <label class="cursor-pointer"><input type="checkbox" value="术后饮食" class="peer sr-only" checked><span class="px-4 py-2 bg-white border border-slate-200 rounded-lg peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50">术后饮食</span></label>
-                            <label class="cursor-pointer"><input type="checkbox" value="吞咽训练" class="peer sr-only"><span class="px-4 py-2 bg-white border border-slate-200 rounded-lg peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50">吞咽训练</span></label>
-                            <label class="cursor-pointer"><input type="checkbox" value="伤口护理" class="peer sr-only"><span class="px-4 py-2 bg-white border border-slate-200 rounded-lg peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50">伤口护理</span></label>
-                            <label class="cursor-pointer"><input type="checkbox" value="心理疏导" class="peer sr-only"><span class="px-4 py-2 bg-white border border-slate-200 rounded-lg peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50">心理疏导</span></label>
-                            <label class="cursor-pointer"><input type="checkbox" value="危险信号" class="peer sr-only"><span class="px-4 py-2 bg-white border border-slate-200 rounded-lg peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50">危险信号</span></label>
-                            <label class="cursor-pointer"><input type="checkbox" value="家属支持" class="peer sr-only"><span class="px-4 py-2 bg-white border border-slate-200 rounded-lg peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50">家属支持</span></label>
+                        <label class="block text-sm font-bold text-slate-700 mb-2"><i class="fa-solid fa-bullseye text-blue-500 mr-1"></i> 本次科普重点</label>
+                        <div id="focus-tags" class="flex flex-wrap gap-2 mb-2"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="focus-input" class="flex-1 border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border bg-white text-sm" placeholder="输入科普重点，按 Enter 添加（如：术后饮食、吞咽训练）">
+                            <button type="button" onclick="addFocusTag()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition">添加</button>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">常见：术后饮食、吞咽训练、伤口护理、心理疏导、危险信号、用药指导、复查提醒</p>
+                    </div>
+
+                    <!-- 输出格式（多选复选框） -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-3"><i class="fa-solid fa-layer-group text-purple-500 mr-1"></i> 输出格式 (可多选)</label>
+                        <div id="output-formats" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="text" class="peer sr-only" checked>
+                                <div class="p-3 bg-white border border-slate-200 rounded-xl peer-checked:bg-blue-50 peer-checked:border-blue-300 transition shadow-sm hover:bg-slate-50 text-center">
+                                    <i class="fa-solid fa-file-lines text-xl text-blue-500 mb-1 block"></i>
+                                    <span class="text-sm font-medium">文字</span>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">结构化科普文案</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="poster" class="peer sr-only" checked>
+                                <div class="p-3 bg-white border border-slate-200 rounded-xl peer-checked:bg-purple-50 peer-checked:border-purple-300 transition shadow-sm hover:bg-slate-50 text-center">
+                                    <i class="fa-solid fa-image text-xl text-purple-500 mb-1 block"></i>
+                                    <span class="text-sm font-medium">海报</span>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">信息图海报</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="image" class="peer sr-only">
+                                <div class="p-3 bg-white border border-slate-200 rounded-xl peer-checked:bg-green-50 peer-checked:border-green-300 transition shadow-sm hover:bg-slate-50 text-center">
+                                    <i class="fa-solid fa-images text-xl text-green-500 mb-1 block"></i>
+                                    <span class="text-sm font-medium">图片</span>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">AI 场景配图</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="video" class="peer sr-only">
+                                <div class="p-3 bg-white border border-slate-200 rounded-xl peer-checked:bg-orange-50 peer-checked:border-orange-300 transition shadow-sm hover:bg-slate-50 text-center">
+                                    <i class="fa-solid fa-film text-xl text-orange-500 mb-1 block"></i>
+                                    <span class="text-sm font-medium">视频</span>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">AI 科普短视频</p>
+                                </div>
+                            </label>
                         </div>
                     </div>
 
-                    <!-- 输出格式 + 目标受众 -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2"><i class="fa-solid fa-photo-film text-purple-500 mr-1"></i> 输出格式</label>
-                            <select id="work-format" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border bg-white">
-                                <option value="poster-video">海报 + 视频</option>
-                                <option value="poster-image">海报 + 图片</option>
-                                <option value="image-video">图片 + 视频</option>
-                                <option value="poster-only">仅海报</option>
-                                <option value="video-only">仅视频</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2"><i class="fa-solid fa-users text-green-500 mr-1"></i> 目标受众</label>
-                            <select id="work-audience" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border bg-white">
-                                <option value="patient">患者本人</option>
-                                <option value="patient-family">患者及家属</option>
-                                <option value="caregiver">照护人员</option>
-                                <option value="community">社区大众</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 视频时长 -->
-                    <div id="video-duration-row">
+                    <!-- 视频时长（仅勾选视频时显示） -->
+                    <div id="video-duration-row" style="display:none">
                         <label class="block text-sm font-bold text-slate-700 mb-2"><i class="fa-solid fa-clock text-orange-500 mr-1"></i> 视频时长 (秒)</label>
                         <input type="number" id="video-duration" value="5" min="3" max="60" class="w-32 border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border bg-white">
                         <span class="text-xs text-slate-400 ml-2">建议 5-15 秒</span>
@@ -530,11 +544,47 @@
         });
     }
 
-    // === 格式选择联动：隐藏/显示视频时长 ===
-    document.getElementById('work-format').addEventListener('change', function() {
-        const row = document.getElementById('video-duration-row');
-        const hasVideo = this.value.includes('video');
-        row.style.display = hasVideo ? '' : 'none';
+    // === 科普重点：标签式自由输入 ===
+    var focusTopicsList = [];
+
+    function renderFocusTags() {
+        var container = document.getElementById('focus-tags');
+        container.innerHTML = focusTopicsList.map(function(tag, i) {
+            return '<span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-lg border border-blue-200">'
+                + tag
+                + '<button type="button" onclick="removeFocusTag(' + i + ')" class="text-blue-400 hover:text-red-500 ml-1">&times;</button>'
+                + '</span>';
+        }).join('');
+    }
+
+    function addFocusTag() {
+        var input = document.getElementById('focus-input');
+        var val = input.value.trim();
+        if (val && focusTopicsList.indexOf(val) === -1) {
+            focusTopicsList.push(val);
+            renderFocusTags();
+        }
+        input.value = '';
+        input.focus();
+    }
+
+    window.removeFocusTag = function(i) {
+        focusTopicsList.splice(i, 1);
+        renderFocusTags();
+    };
+
+    document.getElementById('focus-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); addFocusTag(); }
+    });
+
+    // 默认添加一个
+    focusTopicsList.push('术后饮食');
+    renderFocusTags();
+
+    // === 输出格式联动：勾选视频时显示视频时长 ===
+    document.getElementById('output-formats').addEventListener('change', function() {
+        var hasVideo = document.querySelector('#output-formats input[value="video"]:checked');
+        document.getElementById('video-duration-row').style.display = hasVideo ? '' : 'none';
     });
 
     // === 当前作品 ID ===
@@ -566,24 +616,27 @@
         var pDiag = document.getElementById('pt_diagnosis').innerText;
         var pId = document.getElementById('pt_id').innerText.replace('ID: ', '');
 
-        var focusTopics = [];
-        document.querySelectorAll('#focus-topics input[type="checkbox"]:checked').forEach(function(cb) {
-            focusTopics.push(cb.value);
+        // 收集勾选的输出格式
+        var formats = [];
+        document.querySelectorAll('#output-formats input[type="checkbox"]:checked').forEach(function(cb) {
+            formats.push(cb.value);
         });
+        // 组合成后端期望的 format 字符串
+        var formatStr = formats.sort().join('-') || 'text';
 
         return {
             patient: { id: pId, name: pName, diagnosis: pDiag },
             form: {
                 language: currentLang === 'zh' ? 'zh-CN' : 'en',
-                focusTopics: focusTopics,
+                focusTopics: focusTopicsList.slice(),
                 doctorNotes: document.getElementById('doctor-notes').value,
-                videoDurationSec: parseInt(document.getElementById('video-duration').value) || 5
+                videoDurationSec: formats.indexOf('video') >= 0 ? (parseInt(document.getElementById('video-duration').value) || 5) : undefined
             },
             work: {
                 title: document.getElementById('work-title').value || (pName + ' - 科普处方'),
                 topic: pDiag,
-                format: document.getElementById('work-format').value,
-                audience: document.getElementById('work-audience').value
+                format: formatStr,
+                audience: 'patient'
             }
         };
     }
