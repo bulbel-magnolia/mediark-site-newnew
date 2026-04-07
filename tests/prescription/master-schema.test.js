@@ -40,7 +40,7 @@ assert.equal(masterJson.status.text_master, "ready");
 assert.equal(masterJson.spec.patient_context.diagnosis, "食管癌术后恢复期");
 assert.deepEqual(masterJson.spec.patient_context.focus_topics, ["术后饮食", "吞咽训练", "危险信号"]);
 assert.equal(masterJson.spec.evidence_bundle.length, 2);
-assert.equal(masterJson.review.doctor_review_required, true);
+assert.equal(masterJson.review.doctor_confirmation_required, true);
 assert.ok(masterJson.spec.poster_spec.title.length <= POSTER_LIMITS.title);
 assert.ok(masterJson.spec.poster_spec.subtitle.length <= POSTER_LIMITS.subtitle);
 masterJson.spec.poster_spec.key_points.forEach((item) => {

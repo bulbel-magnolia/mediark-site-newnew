@@ -18,7 +18,7 @@
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Lucide 图标库 -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
         tailwind.config = {
@@ -90,7 +90,7 @@
             <!-- Logo区域 -->
             <div class="text-center mb-6">
                 <div class="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mb-3 shadow-lg">
-                    <i data-lucide="user-plus" class="w-7 h-7 text-white"></i>
+                    <i class="fa-solid fa-user-plus w-7 h-7 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800">创建账户</h1>
                 <p class="text-sm text-gray-500 mt-1">加入 MediArk，开启智慧医疗之旅</p>
@@ -104,7 +104,7 @@
                     <label class="block text-xs font-medium text-gray-700 ml-1">真实姓名</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="user" class="w-4 h-4 text-gray-400"></i>
+                            <i class="fa-solid fa-user w-4 h-4 text-gray-400"></i>
                         </div>
                         <input type="text" name="realName" required
                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
@@ -117,7 +117,7 @@
                     <label class="block text-xs font-medium text-gray-700 ml-1">所属医院</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="building-2" class="w-4 h-4 text-gray-400"></i>
+                            <i class="fa-solid fa-hospital w-4 h-4 text-gray-400"></i>
                         </div>
                         <input type="text" name="hospital" required
                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
@@ -130,7 +130,7 @@
                     <label class="block text-xs font-medium text-gray-700 ml-1">工号 (Job ID)</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="badge-id" class="w-4 h-4 text-gray-400"></i>
+                            <i class="fa-solid fa-id-badge w-4 h-4 text-gray-400"></i>
                         </div>
                         <input type="text" name="jobId" required
                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
@@ -143,7 +143,7 @@
                     <label class="block text-xs font-medium text-gray-700 ml-1">手机号码</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="smartphone" class="w-4 h-4 text-gray-400"></i>
+                            <i class="fa-solid fa-mobile-screen w-4 h-4 text-gray-400"></i>
                         </div>
                         <input type="tel" id="mobile" name="mobile" maxlength="11" required
                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
@@ -157,7 +157,7 @@
                     <div class="flex gap-2">
                         <div class="relative flex-1">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <i data-lucide="message-square-text" class="w-4 h-4 text-gray-400"></i>
+                                <i class="fa-solid fa-comment-sms w-4 h-4 text-gray-400"></i>
                             </div>
                             <input type="text" name="code" maxlength="6" required
                                    class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
@@ -175,14 +175,14 @@
                     <label class="block text-xs font-medium text-gray-700 ml-1">设置密码</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="w-4 h-4 text-gray-400"></i>
+                            <i class="fa-solid fa-lock w-4 h-4 text-gray-400"></i>
                         </div>
                         <input type="password" id="password" name="password" required
                                class="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
                                placeholder="6位以上密码">
                         <button type="button" onclick="togglePassword('password')" 
                                 class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
-                            <i data-lucide="eye" class="w-4 h-4"></i>
+                            <i class="fa-solid fa-eye w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
@@ -192,7 +192,7 @@
                     <label class="block text-xs font-medium text-gray-700 ml-1">确认密码</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="check-circle-2" class="w-4 h-4 text-gray-400"></i>
+                            <i class="fa-solid fa-circle-check w-4 h-4 text-gray-400"></i>
                         </div>
                         <input type="password" id="confirmPassword" required
                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
@@ -204,7 +204,7 @@
                 <!-- 注册按钮 -->
                 <button type="submit" id="submitBtn"
                         class="w-full py-3 mt-2 btn-primary text-white font-medium rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm">
-                    <i data-lucide="rocket" class="w-4 h-4"></i>
+                    <i class="fa-solid fa-rocket w-4 h-4"></i>
                     立即注册
                 </button>
             </form>
@@ -224,7 +224,7 @@
 <!-- register.html 的新脚本 -->
     <script>
         // 初始化图标
-        lucide.createIcons();
+        
 
         // 密码显隐切换
         function togglePassword(inputId) {
@@ -294,8 +294,8 @@
 
             // 6. UI 反馈与跳转
             const btn = document.getElementById('submitBtn');
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> 注册中...`;
-            lucide.createIcons();
+            btn.innerHTML = `<i class="fa-solid fa-spinner w-4 h-4 animate-spin"></i> 注册中...`;
+            
 
             console.log("✅ 用户已存入 LocalStorage:", newUser);
 

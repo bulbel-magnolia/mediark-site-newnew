@@ -12,7 +12,7 @@ const ctx = await createTestContext({ generationRuntime: runtime });
 
 try {
   const admin = await loginAs(ctx.baseUrl, "admin", "admin123");
-  const reviewer = await loginAs(ctx.baseUrl, "reviewer", "review123");
+  const doctor = await loginAs(ctx.baseUrl, "doctor", "doctor123");
 
   const active = await apiRequest(ctx.baseUrl, "/api/schemas/clinical-education-prescription/active", {
     cookie: admin.cookie
@@ -21,7 +21,7 @@ try {
 
   const generated = await apiRequest(ctx.baseUrl, "/api/works/generate", {
     method: "POST",
-    cookie: admin.cookie,
+    cookie: doctor.cookie,
     body: {
       schemaSlug: "clinical-education-prescription",
       input: {
@@ -47,45 +47,49 @@ try {
   });
   assert.equal(generated.response.status, 201);
 
-  const submitted = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/submit-review`, {
+  const blockedAdminPublish = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/publish`, {
     method: "POST",
     cookie: admin.cookie,
     body: {
-      reviewerId: reviewer.payload.user.id,
-      note: "Please verify clinical red flags."
-    }
-  });
-  assert.equal(submitted.payload.work.status, "in_review");
-
-  const blockedAdminApproval = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/review`, {
-    method: "POST",
-    cookie: admin.cookie,
-    body: {
-      action: "approve",
       note: "Admin should not be allowed."
     }
   });
-  assert.equal(blockedAdminApproval.response.status, 403);
+  assert.equal(blockedAdminPublish.response.status, 403);
 
-  const approved = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/review`, {
+  const regenerated = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/regenerate`, {
     method: "POST",
-    cookie: reviewer.cookie,
+    cookie: doctor.cookie,
     body: {
-      action: "approve",
-      note: "Clinically acceptable."
+      input: {
+        form: {
+          doctorNotes: "Second pass for clearer family guidance."
+        }
+      }
     }
   });
-  assert.equal(approved.payload.work.status, "approved");
+  assert.equal(regenerated.payload.work.status, "generated");
+  assert.equal(regenerated.payload.work.latestVersion.version, 2);
 
   const published = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/publish`, {
     method: "POST",
-    cookie: admin.cookie,
-    body: {}
+    cookie: doctor.cookie,
+    body: {
+      note: "Doctor confirmed this bundle for the public library."
+    }
   });
   assert.equal(published.payload.work.status, "published");
 
   const library = await apiRequest(ctx.baseUrl, "/api/library/works");
   assert.ok(library.payload.items.some((item) => item.id === generated.payload.work.id));
+
+  const archived = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/archive`, {
+    method: "POST",
+    cookie: doctor.cookie,
+    body: {
+      note: "Archive after smoke verification."
+    }
+  });
+  assert.equal(archived.payload.work.status, "archived");
 
   console.log("server smoke passed");
 } finally {

@@ -25,7 +25,7 @@ export function redirectForRole(user) {
     return;
   }
 
-  if (user.role === "doctor-reviewer") {
+  if (user.role === "doctor") {
     window.location.href = "dashboard.html";
     return;
   }
@@ -36,8 +36,9 @@ export function redirectForRole(user) {
 export async function requireAuth({ roles = [] } = {}) {
   try {
     const user = await getCurrentUser();
+    const normalizedRoles = roles.map((role) => (role === "doctor-reviewer" ? "doctor" : role));
 
-    if (roles.length && !roles.includes(user.role)) {
+    if (normalizedRoles.length && !normalizedRoles.includes(user.role)) {
       redirectForRole(user);
       return null;
     }

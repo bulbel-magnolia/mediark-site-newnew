@@ -30,6 +30,21 @@ function renderField(field, initialValue) {
   const inputId = `field-${field.id}`;
   const value = initialValue ?? "";
 
+  if (field.type === "select") {
+    const options = (field.options || []).map((option) => `
+      <option value="${escapeHtml(option)}" ${String(value) === String(option) ? "selected" : ""}>${escapeHtml(option)}</option>
+    `).join("");
+
+    return `
+      <div class="field">
+        <label for="${inputId}">${escapeHtml(field.label)}${field.required ? " *" : ""}</label>
+        <select id="${inputId}" data-bind="${field.bind}" ${field.required ? "required" : ""}>
+          ${options}
+        </select>
+      </div>
+    `;
+  }
+
   if (field.type === "textarea") {
     return `
       <div class="field">

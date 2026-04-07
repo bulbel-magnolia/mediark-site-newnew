@@ -42,7 +42,7 @@ function buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, la
     do_list: mustDo.slice(0, 3).map((item) => clampPosterText(item, POSTER_LIMITS.action)),
     dont_list: mustAvoid.slice(0, 3).map((item) => clampPosterText(item, POSTER_LIMITS.action)),
     red_flags: redFlags.slice(0, 3).map((item) => clampPosterText(item, POSTER_LIMITS.redFlag)),
-    footer_badge: isEnglish ? "Doctor reviewed" : "医生审核后使用",
+    footer_badge: isEnglish ? "Doctor confirmed" : "医生确认后发放",
     source_tag: isEnglish ? "Evidence bundle" : "团队证据包支持"
   };
 }
@@ -131,7 +131,7 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
         narration_script: isEnglish
           ? `${patient.nameEn || patient.name || "The patient"} is currently in ${patient.stageEn || patient.stage || "recovery"}. Please focus on ${focusTopics.join(", ") || "diet and red flags"}.`
           : `${patient.name || "患者"}当前处于${patient.stage || "恢复期"}，请重点关注${focusTopics.join("、") || "饮食和危险信号"}。`,
-        doctor_review_note: isEnglish ? "Pending doctor review before release." : "待医生审核后发布。"
+        doctor_review_note: isEnglish ? "Doctor confirmation is required before library release." : "需由医生确认后再入库发放。"
       },
       poster_spec: buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, language }),
       image_spec: {
@@ -160,11 +160,11 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
       }
     },
     review: {
-      doctor_review_required: true,
-      doctor_review_status: "pending",
+      doctor_confirmation_required: true,
+      doctor_confirmation_status: "pending",
       medical_risk_level: "low",
       blocked_terms: [],
-      final_approved_by: ""
+      final_confirmed_by: ""
     }
   };
 }

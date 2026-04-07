@@ -22,6 +22,14 @@ export function buildDefaultSchemaDefinition() {
         description: "Core direction for JSON-driven text, poster, image and video generation.",
         fields: [
           {
+            id: "language",
+            label: "Interface Language",
+            type: "select",
+            bind: "form.language",
+            required: true,
+            options: ["zh-CN", "en"]
+          },
+          {
             id: "focus_topics",
             label: "Focus Topics",
             type: "multiselect",
@@ -33,8 +41,20 @@ export function buildDefaultSchemaDefinition() {
           { id: "video_duration", label: "Video Duration (sec)", type: "number", bind: "form.videoDurationSec" },
           { id: "work_title", label: "Work Title", type: "text", bind: "work.title", required: true },
           { id: "work_topic", label: "Topic", type: "text", bind: "work.topic" },
-          { id: "work_format", label: "Format", type: "text", bind: "work.format" },
-          { id: "work_audience", label: "Audience", type: "text", bind: "work.audience" }
+          {
+            id: "work_format",
+            label: "Format",
+            type: "select",
+            bind: "work.format",
+            options: ["poster-video", "poster-image", "image-video", "poster-only", "video-only"]
+          },
+          {
+            id: "work_audience",
+            label: "Audience",
+            type: "select",
+            bind: "work.audience",
+            options: ["patient", "patient-family", "caregiver", "community"]
+          }
         ]
       }
     ]
@@ -86,9 +106,16 @@ export function seedDatabase(db) {
   });
 
   seedUser(db, {
+    username: "doctor",
+    displayName: "Doctor Workspace",
+    role: "doctor",
+    password: "doctor123"
+  });
+
+  seedUser(db, {
     username: "reviewer",
     displayName: "Doctor Reviewer",
-    role: "doctor-reviewer",
+    role: "doctor",
     password: "review123"
   });
 
@@ -106,7 +133,7 @@ export function seedDatabase(db) {
         {
           slug: "clinical-education-prescription",
           name: "Clinical Education Prescription",
-          description: "Default contest schema for reviewable patient education bundles.",
+          description: "Default contest schema for doctor-driven patient education bundles.",
           createdBy: adminId
         }
       ).lastInsertRowid
@@ -162,6 +189,6 @@ export function seedDatabase(db) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const db = createDatabase();
   const result = seedDatabase(db);
-  console.log(`Seeded admin, reviewer, and schema ${result.schemaId} (active version ${result.versionId}).`);
+  console.log(`Seeded admin, doctor, and schema ${result.schemaId} (active version ${result.versionId}).`);
   db.close();
 }

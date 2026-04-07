@@ -4,6 +4,12 @@ import { get } from "../db.js";
 import { hashPassword } from "../lib/auth.js";
 import { getUserById, listUsers } from "../lib/work-service.js";
 
+const ALLOWED_ROLES = new Set(["admin", "doctor"]);
+
+function normalizeRole(role) {
+  return String(role || "").trim() === "doctor-reviewer" ? "doctor" : String(role || "").trim();
+}
+
 export function createUsersRouter({ db, auth }) {
   const router = express.Router();
 
@@ -16,12 +22,16 @@ export function createUsersRouter({ db, auth }) {
   router.post("/", (req, res) => {
     const username = String(req.body?.username || "").trim();
     const displayName = String(req.body?.displayName || "").trim();
-    const role = String(req.body?.role || "").trim();
+    const role = normalizeRole(req.body?.role);
     const password = String(req.body?.password || "");
     const isActive = req.body?.isActive === false ? 0 : 1;
 
     if (!username || !displayName || !role || !password) {
       return res.status(400).json({ error: "username, displayName, role and password are required." });
+    }
+
+    if (!ALLOWED_ROLES.has(role)) {
+      return res.status(400).json({ error: "role must be admin or doctor." });
     }
 
     if (get(db, "SELECT id FROM users WHERE username = :username", { username })) {
@@ -48,6 +58,12 @@ export function createUsersRouter({ db, auth }) {
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
+    }
+
+    const nextRole = req.body?.role != null ? normalizeRole(req.body.role) : null;
+
+    if (nextRole != null && !ALLOWED_ROLES.has(String(nextRole))) {
+      return res.status(400).json({ error: "role must be admin or doctor." });
     }
 
     db.prepare(

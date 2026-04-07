@@ -32,7 +32,12 @@ async function loadAll() {
   const [usersResult, schemasResult, worksResult] = await Promise.all([
     api.get("/api/users"),
     api.get("/api/schemas"),
-    api.get("/api/works")
+    api.get("/api/works").catch((error) => {
+      if (error instanceof ApiError && error.status === 403) {
+        return { items: [] };
+      }
+      throw error;
+    })
   ]);
 
   state.users = usersResult.items;
@@ -46,7 +51,7 @@ async function loadAll() {
 }
 
 function renderMetrics() {
-  const reviewers = state.users.filter((user) => user.role === "doctor-reviewer" && user.isActive).length;
+  const reviewers = state.users.filter((user) => ["doctor-reviewer", "doctor"].includes(user.role) && user.isActive).length;
   const pendingPublish = state.works.filter((work) => work.status === "approved").length;
   const published = state.works.filter((work) => work.status === "published").length;
   const draftLike = state.works.filter((work) => ["generated", "in_review", "changes_requested"].includes(work.status)).length;
@@ -72,7 +77,7 @@ function renderUsers() {
         <strong>${user.displayName}</strong>
         <div class="meta-text">${user.username}</div>
       </td>
-      <td>${user.role}</td>
+      <td>${user.role === "doctor" ? "doctor-reviewer" : user.role}</td>
       <td>${user.isActive ? renderStatusPill("approved") : renderStatusPill("archived")}</td>
       <td>${formatDate(user.updatedAt)}</td>
       <td>
@@ -149,7 +154,7 @@ async function handleUserCreate(event) {
   const payload = {
     username: $("new-username").value.trim(),
     displayName: $("new-display-name").value.trim(),
-    role: $("new-role").value,
+    role: $("new-role").value === "doctor-reviewer" ? "doctor" : $("new-role").value,
     password: $("new-password").value,
     isActive: true
   };

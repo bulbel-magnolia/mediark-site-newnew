@@ -52,7 +52,7 @@ const refined = applyCopyRefinement(draft, {
     do_list: ["Small meals", "Warm fluids", "Review plan"],
     dont_list: ["Hard foods", "Fast eating", "Ignore pain"],
     red_flags: ["Vomiting", "Chest pain", "Cannot swallow"],
-    footer_badge: "Doctor reviewed",
+    footer_badge: "Doctor confirmed",
     source_tag: "Evidence bundle"
   }
 });

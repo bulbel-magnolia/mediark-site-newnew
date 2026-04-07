@@ -10,11 +10,14 @@ import { createLibraryRouter } from "./routes/library.js";
 import { createSchemasRouter } from "./routes/schemas.js";
 import { createUsersRouter } from "./routes/users.js";
 import { createWorksRouter } from "./routes/works.js";
+import { seedDatabase } from "./seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 
 export function createApp({ db = createDatabase(), disableStatic = false, generationRuntime = {} } = {}) {
+  seedDatabase(db);
+
   const app = express();
   const auth = createAuthMiddleware(db);
 

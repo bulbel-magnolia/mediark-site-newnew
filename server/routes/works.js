@@ -6,18 +6,32 @@ import {
   archiveWork,
   createGeneratedWork,
   getActiveSchemaVersion,
-  getUserById,
   getWorkById,
   listWorks,
   publishWork,
-  reviewWork,
-  submitWorkForReview
+  reviewWork
 } from "../lib/work-service.js";
 
 export function createWorksRouter({ db, auth, generationRuntime = {} }) {
   const router = express.Router();
 
-  router.use(auth.requireAuth);
+  router.use(auth.requireAuth, auth.requireRole("doctor"));
+
+  function requireOwnedWork(req, res) {
+    const work = getWorkById(db, Number(req.params.id));
+
+    if (!work) {
+      res.status(404).json({ error: "Work not found." });
+      return null;
+    }
+
+    if (work.createdBy?.id !== req.auth.user.id) {
+      res.status(403).json({ error: "You can only access works created by your own doctor account." });
+      return null;
+    }
+
+    return work;
+  }
 
   router.get("/", (req, res) => {
     res.json({
@@ -28,11 +42,8 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
   });
 
   router.get("/:id", (req, res) => {
-    const work = getWorkById(db, Number(req.params.id));
-
-    if (!work) {
-      return res.status(404).json({ error: "Work not found." });
-    }
+    const work = requireOwnedWork(req, res);
+    if (!work) return;
 
     return res.json({ work });
   });
@@ -63,12 +74,9 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
   });
 
   router.post("/:id/regenerate", async (req, res) => {
-    const workId = Number(req.params.id);
-    const existing = getWorkById(db, workId);
-
-    if (!existing) {
-      return res.status(404).json({ error: "Work not found." });
-    }
+    const existing = requireOwnedWork(req, res);
+    if (!existing) return;
+    const workId = existing.id;
 
     const active = getActiveSchemaVersion(db, existing.schema.slug);
 
@@ -97,77 +105,41 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
     return res.json({ work });
   });
 
-  router.post("/:id/submit-review", auth.requireRole("admin"), (req, res) => {
-    const workId = Number(req.params.id);
-    const work = getWorkById(db, workId);
-
-    if (!work) {
-      return res.status(404).json({ error: "Work not found." });
-    }
-
-    const reviewerId = Number(req.body?.reviewerId);
-    const reviewer = getUserById(db, reviewerId);
-
-    if (!reviewer || reviewer.role !== "doctor-reviewer") {
-      return res.status(400).json({ error: "A doctor reviewer must be assigned." });
-    }
-
-    const updated = submitWorkForReview(
-      db,
-      workId,
-      reviewerId,
-      String(req.body?.note || ""),
-      req.auth.user.id
-    );
-    return res.json({ work: updated });
-  });
-
-  router.post("/:id/review", auth.requireRole("doctor-reviewer"), (req, res) => {
-    const workId = Number(req.params.id);
-    const work = getWorkById(db, workId);
-
-    if (!work) {
-      return res.status(404).json({ error: "Work not found." });
-    }
-
-    if (work.assignedReviewer && work.assignedReviewer.id !== req.auth.user.id) {
-      return res.status(403).json({ error: "This work is assigned to another reviewer." });
-    }
+  router.post("/:id/review", (req, res) => {
+    const work = requireOwnedWork(req, res);
+    if (!work) return;
 
     const action = String(req.body?.action || "");
 
     if (!["approve", "changes_requested"].includes(action)) {
-      return res.status(400).json({ error: "action must be approve or changes_requested." });
+      return res.status(400).json({ error: "Unsupported review action." });
     }
 
-    const updated = reviewWork(db, workId, req.auth.user.id, action, String(req.body?.note || ""));
-    return res.json({ work: updated });
+    return res.json({
+      work: reviewWork(db, work.id, req.auth.user.id, action, String(req.body?.note || ""))
+    });
   });
 
-  router.post("/:id/publish", auth.requireRole("admin"), (req, res) => {
-    const workId = Number(req.params.id);
-    const work = getWorkById(db, workId);
+  router.post("/:id/publish", (req, res) => {
+    const work = requireOwnedWork(req, res);
+    if (!work) return;
 
-    if (!work) {
-      return res.status(404).json({ error: "Work not found." });
+    if (!["generated", "approved", "published", "archived"].includes(work.status)) {
+      return res.status(400).json({ error: "Only generated or editable works can be confirmed to the library." });
     }
 
-    if (work.status !== "approved") {
-      return res.status(400).json({ error: "Only approved works can be published." });
-    }
-
-    return res.json({ work: publishWork(db, workId) });
+    return res.json({
+      work: publishWork(db, work.id, req.auth.user.id, String(req.body?.note || ""))
+    });
   });
 
-  router.post("/:id/archive", auth.requireRole("admin"), (req, res) => {
-    const workId = Number(req.params.id);
-    const work = getWorkById(db, workId);
+  router.post("/:id/archive", (req, res) => {
+    const work = requireOwnedWork(req, res);
+    if (!work) return;
 
-    if (!work) {
-      return res.status(404).json({ error: "Work not found." });
-    }
-
-    return res.json({ work: archiveWork(db, workId) });
+    return res.json({
+      work: archiveWork(db, work.id, req.auth.user.id, String(req.body?.note || ""))
+    });
   });
 
   return router;

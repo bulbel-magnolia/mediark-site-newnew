@@ -90,7 +90,7 @@ const runtime = {
                     do_list: ["Small meals", "Warm fluids", "Review plan"],
                     dont_list: ["Hard foods", "Fast eating", "Ignore pain"],
                     red_flags: ["Vomiting", "Chest pain", "Cannot swallow"],
-                    footer_badge: "Doctor reviewed",
+                    footer_badge: "Doctor confirmed",
                     source_tag: "Evidence bundle"
                   }
                 })
@@ -162,7 +162,7 @@ const bundle = await generatePrescriptionBundle({
 
 assert.equal(bundle.mode, "live");
 assert.equal(bundle.masterJson.spec.clinical_core.clinical_summary, "Live refined summary.");
-assert.equal(bundle.masterJson.review.doctor_review_required, true);
+assert.equal(bundle.masterJson.review.doctor_confirmation_required, true);
 assert.equal(bundle.masterJson.artifacts.images[0].status, "generated");
 assert.equal(bundle.masterJson.artifacts.images[0].provider, "openai-compatible");
 assert.equal(bundle.masterJson.status.image_generation, "generated");

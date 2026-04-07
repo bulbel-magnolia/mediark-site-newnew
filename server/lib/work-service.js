@@ -319,6 +319,22 @@ function getReviewActions(db, workId) {
   ).map(hydrateReview);
 }
 
+function recordWorkAction(db, { workId, workVersionId = null, reviewerId, action, note = "", payload = {} }) {
+  run(
+    db,
+    `INSERT INTO review_actions (work_id, work_version_id, reviewer_id, action, note, payload_json)
+     VALUES (:workId, :workVersionId, :reviewerId, :action, :note, :payloadJson)`,
+    {
+      workId,
+      workVersionId,
+      reviewerId,
+      action,
+      note,
+      payloadJson: toJson(payload)
+    }
+  );
+}
+
 function hydrateWork(db, row) {
   if (!row) {
     return null;
@@ -391,9 +407,9 @@ export function listWorks(db, user, filters = {}) {
     params.status = filters.status;
   }
 
-  if (user?.role === "doctor-reviewer") {
-    conditions.push("(works.assigned_reviewer_id = :reviewerId OR works.status = 'in_review')");
-    params.reviewerId = user.id;
+  if (user?.role === "doctor") {
+    conditions.push("works.created_by = :createdBy");
+    params.createdBy = user.id;
   }
 
   const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -505,6 +521,13 @@ export const createGeneratedWork = transaction(function createGeneratedWorkTx(db
   const workVersionId = Number(workVersionInsert.lastInsertRowid);
   insertAssets(db, workVersionId, payload.bundle.masterJson.artifacts);
   insertGenerationRun(db, workId, workVersionId, payload.bundle, "generate", payload.createdBy);
+  recordWorkAction(db, {
+    workId,
+    workVersionId,
+    reviewerId: payload.createdBy,
+    action: "generated",
+    note: "Initial multimodal bundle created."
+  });
 
   return getWorkById(db, workId);
 });
@@ -534,6 +557,13 @@ export const appendGeneratedWorkVersion = transaction(function appendGeneratedWo
   const workVersionId = Number(workVersionInsert.lastInsertRowid);
   insertAssets(db, workVersionId, payload.bundle.masterJson.artifacts);
   insertGenerationRun(db, payload.workId, workVersionId, payload.bundle, "regenerate", payload.createdBy);
+  recordWorkAction(db, {
+    workId: payload.workId,
+    workVersionId,
+    reviewerId: payload.createdBy,
+    action: "regenerated",
+    note: "Doctor requested another refinement pass."
+  });
 
   run(
     db,
@@ -544,6 +574,7 @@ export const appendGeneratedWorkVersion = transaction(function appendGeneratedWo
             format = :format,
             audience = :audience,
             status = 'generated',
+            assigned_reviewer_id = NULL,
             published_at = NULL,
             archived_at = NULL,
             updated_at = :updatedAt
@@ -562,41 +593,42 @@ export const appendGeneratedWorkVersion = transaction(function appendGeneratedWo
   return getWorkById(db, payload.workId);
 });
 
-export const submitWorkForReview = transaction(function submitWorkForReviewTx(db, workId, reviewerId, note, actorId) {
+export const publishWork = transaction(function publishWorkTx(db, workId, actorId, note = "") {
   const latestVersion = getLatestWorkVersionRow(db, workId);
-  run(
-    db,
-    `UPDATE works
-        SET status = 'in_review',
-            assigned_reviewer_id = :reviewerId,
-            updated_at = :updatedAt
-      WHERE id = :workId`,
-    {
-      reviewerId,
-      updatedAt: nowIso(),
-      workId
-    }
-  );
 
   run(
     db,
-    `INSERT INTO review_actions (work_id, work_version_id, reviewer_id, action, note, payload_json)
-     VALUES (:workId, :workVersionId, :reviewerId, 'submit_review', :note, :payloadJson)`,
+    `UPDATE works
+        SET status = 'published',
+            published_at = :publishedAt,
+            archived_at = NULL,
+            updated_at = :updatedAt
+      WHERE id = :workId`,
     {
       workId,
-      workVersionId: latestVersion?.id || null,
-      reviewerId: actorId,
-      note: note || "",
-      payloadJson: toJson({ assignedReviewerId: reviewerId })
+      publishedAt: nowIso(),
+      updatedAt: nowIso()
     }
   );
+
+  recordWorkAction(db, {
+    workId,
+    workVersionId: latestVersion?.id || null,
+    reviewerId: actorId,
+    action: "published",
+    note: note || "Doctor confirmed this version for distribution."
+  });
 
   return getWorkById(db, workId);
 });
 
-export const reviewWork = transaction(function reviewWorkTx(db, workId, reviewerId, action, note) {
+export const reviewWork = transaction(function reviewWorkTx(db, workId, actorId, action, note = "") {
   const latestVersion = getLatestWorkVersionRow(db, workId);
-  const nextStatus = action === "approve" ? "approved" : "changes_requested";
+  const nextStatus = action === "approve" ? "approved" : action === "changes_requested" ? "changes_requested" : null;
+
+  if (!nextStatus) {
+    return getWorkById(db, workId);
+  }
 
   run(
     db,
@@ -611,42 +643,22 @@ export const reviewWork = transaction(function reviewWorkTx(db, workId, reviewer
     }
   );
 
-  run(
-    db,
-    `INSERT INTO review_actions (work_id, work_version_id, reviewer_id, action, note, payload_json)
-     VALUES (:workId, :workVersionId, :reviewerId, :action, :note, :payloadJson)`,
-    {
-      workId,
-      workVersionId: latestVersion?.id || null,
-      reviewerId,
-      action,
-      note: note || "",
-      payloadJson: toJson({})
-    }
-  );
+  recordWorkAction(db, {
+    workId,
+    workVersionId: latestVersion?.id || null,
+    reviewerId: actorId,
+    action,
+    note: note || (action === "approve"
+      ? "Clinical review approved."
+      : "Changes requested during clinical review.")
+  });
 
   return getWorkById(db, workId);
 });
 
-export function publishWork(db, workId) {
-  run(
-    db,
-    `UPDATE works
-        SET status = 'published',
-            published_at = :publishedAt,
-            updated_at = :updatedAt
-      WHERE id = :workId`,
-    {
-      workId,
-      publishedAt: nowIso(),
-      updatedAt: nowIso()
-    }
-  );
+export const archiveWork = transaction(function archiveWorkTx(db, workId, actorId, note = "") {
+  const latestVersion = getLatestWorkVersionRow(db, workId);
 
-  return getWorkById(db, workId);
-}
-
-export function archiveWork(db, workId) {
   run(
     db,
     `UPDATE works
@@ -661,8 +673,16 @@ export function archiveWork(db, workId) {
     }
   );
 
+  recordWorkAction(db, {
+    workId,
+    workVersionId: latestVersion?.id || null,
+    reviewerId: actorId,
+    action: "archived",
+    note: note || "Doctor archived this work from the active workspace."
+  });
+
   return getWorkById(db, workId);
-}
+});
 
 export function listLibraryWorks(db) {
   const rows = all(

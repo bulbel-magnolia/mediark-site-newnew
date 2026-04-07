@@ -1,18 +1,41 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 
+import { BASE_MEDIARK_CONFIG, mergeConfigOverrides } from "../../js/config/api-config.js";
 import { apiRequest, createTestContext, loginAs } from "./test-helpers.js";
 
-test("work lifecycle enforces reviewer approval before publish", async (t) => {
-  const ctx = await createTestContext();
-  t.after(() => ctx.close());
+const ctx = await createTestContext({
+  generationRuntime: {
+    config: mergeConfigOverrides(BASE_MEDIARK_CONFIG, { mode: "mock" }),
+    sleep: async () => {}
+  }
+});
 
+try {
   const admin = await loginAs(ctx.baseUrl, "admin", "admin123");
-  const reviewer = await loginAs(ctx.baseUrl, "reviewer", "review123");
+  const doctor = await loginAs(ctx.baseUrl, "doctor", "doctor123");
+
+  const createdDoctor = await apiRequest(ctx.baseUrl, "/api/users", {
+    method: "POST",
+    cookie: admin.cookie,
+    body: {
+      username: "doctor2",
+      displayName: "Doctor Two",
+      role: "doctor",
+      password: "doctor234"
+    }
+  });
+  assert.equal(createdDoctor.response.status, 201);
+
+  const doctorTwo = await loginAs(ctx.baseUrl, "doctor2", "doctor234");
+
+  const adminWorks = await apiRequest(ctx.baseUrl, "/api/works", {
+    cookie: admin.cookie
+  });
+  assert.equal(adminWorks.response.status, 403);
 
   const generated = await apiRequest(ctx.baseUrl, "/api/works/generate", {
     method: "POST",
-    cookie: admin.cookie,
+    cookie: doctor.cookie,
     body: {
       schemaSlug: "clinical-education-prescription",
       input: {
@@ -23,6 +46,7 @@ test("work lifecycle enforces reviewer approval before publish", async (t) => {
           stage: "Adjuvant therapy"
         },
         form: {
+          language: "zh-CN",
           focusTopics: ["red flags", "medication"],
           doctorNotes: "Keep tone calm and clinically cautious.",
           videoDurationSec: 8
@@ -39,39 +63,68 @@ test("work lifecycle enforces reviewer approval before publish", async (t) => {
   assert.equal(generated.response.status, 201);
   assert.equal(generated.payload.work.status, "generated");
   assert.equal(generated.payload.work.latestVersion.version, 1);
-  assert.ok(generated.payload.work.latestVersion.masterJson);
 
-  const forbiddenApproval = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/review`, {
-    method: "POST",
-    cookie: admin.cookie,
-    body: { action: "approve", note: "Admin cannot do clinical approval" }
+  const otherDoctorList = await apiRequest(ctx.baseUrl, "/api/works", {
+    cookie: doctorTwo.cookie
   });
-  assert.equal(forbiddenApproval.response.status, 403);
+  assert.equal(otherDoctorList.response.status, 200);
+  assert.equal(otherDoctorList.payload.items.length, 0);
 
-  const submitted = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/submit-review`, {
-    method: "POST",
-    cookie: admin.cookie,
-    body: { reviewerId: reviewer.payload.user.id, note: "Please verify red flags and family guidance." }
+  const otherDoctorDetail = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}`, {
+    cookie: doctorTwo.cookie
   });
-  assert.equal(submitted.response.status, 200);
-  assert.equal(submitted.payload.work.status, "in_review");
+  assert.equal(otherDoctorDetail.response.status, 403);
 
-  const approved = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/review`, {
+  const regenerated = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/regenerate`, {
     method: "POST",
-    cookie: reviewer.cookie,
-    body: { action: "approve", note: "Clinical messaging is acceptable." }
+    cookie: doctor.cookie,
+    body: {
+      input: {
+        form: {
+          doctorNotes: "Second pass: simplify the home monitoring section."
+        }
+      }
+    }
   });
-  assert.equal(approved.response.status, 200);
-  assert.equal(approved.payload.work.status, "approved");
+  assert.equal(regenerated.response.status, 200);
+  assert.equal(regenerated.payload.work.status, "generated");
+  assert.equal(regenerated.payload.work.latestVersion.version, 2);
+
+  const blockedAdminPublish = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/publish`, {
+    method: "POST",
+    cookie: admin.cookie
+  });
+  assert.equal(blockedAdminPublish.response.status, 403);
 
   const published = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/publish`, {
     method: "POST",
-    cookie: admin.cookie
+    cookie: doctor.cookie,
+    body: {
+      note: "Final clinical wording confirmed for distribution."
+    }
   });
   assert.equal(published.response.status, 200);
   assert.equal(published.payload.work.status, "published");
 
-  const library = await apiRequest(ctx.baseUrl, "/api/library/works");
-  assert.equal(library.response.status, 200);
-  assert.ok(library.payload.items.some((item) => item.id === generated.payload.work.id));
-});
+  const libraryAfterPublish = await apiRequest(ctx.baseUrl, "/api/library/works");
+  assert.equal(libraryAfterPublish.response.status, 200);
+  assert.ok(libraryAfterPublish.payload.items.some((item) => item.id === generated.payload.work.id));
+
+  const archived = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/archive`, {
+    method: "POST",
+    cookie: doctor.cookie,
+    body: {
+      note: "Archived after demo review."
+    }
+  });
+  assert.equal(archived.response.status, 200);
+  assert.equal(archived.payload.work.status, "archived");
+
+  const libraryAfterArchive = await apiRequest(ctx.baseUrl, "/api/library/works");
+  assert.equal(libraryAfterArchive.response.status, 200);
+  assert.ok(!libraryAfterArchive.payload.items.some((item) => item.id === generated.payload.work.id));
+
+  console.log("works.test.js passed");
+} finally {
+  await ctx.close();
+}

@@ -5,29 +5,31 @@ const state = {
   role: "doctor-reviewer"
 };
 
+const roleConfigs = {
+  "doctor-reviewer": {
+    title: "临床使用入口",
+    hint: "医生负责生成、审阅并确认 AI 科普作品，确认后再进入正式展示与分发。",
+    usernameLabel: "账号",
+    usernamePlaceholder: "doctor",
+    helper: "演示账号：reviewer / review123"
+  },
+  admin: {
+    title: "管理员入口",
+    hint: "管理员负责账号与系统治理，不直接替代医生完成内容审阅。",
+    usernameLabel: "管理员账号",
+    usernamePlaceholder: "admin",
+    helper: "演示账号：admin / admin123"
+  }
+};
+
 function $(id) {
   return document.getElementById(id);
 }
 
-function applyRoleVisuals() {
-  const configs = {
-    "doctor-reviewer": {
-      title: "临床审核入口",
-      hint: "用于审核 AI 生成的医学科普处方、签署临床可信意见。",
-      usernameLabel: "审核账号",
-      usernamePlaceholder: "reviewer",
-      helper: "默认演示账号：reviewer / review123"
-    },
-    admin: {
-      title: "运营管理入口",
-      hint: "用于用户管理、Schema 版本管理、作品发布与归档。",
-      usernameLabel: "管理员账号",
-      usernamePlaceholder: "admin",
-      helper: "默认演示账号：admin / admin123"
-    }
-  };
+function setRole(role) {
+  state.role = role;
+  const config = roleConfigs[role];
 
-  const config = configs[state.role];
   $("role-title").textContent = config.title;
   $("role-hint").textContent = config.hint;
   $("username-label").textContent = config.usernameLabel;
@@ -35,7 +37,10 @@ function applyRoleVisuals() {
   $("credential-helper").textContent = config.helper;
 
   document.querySelectorAll("[data-role-tab]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.roleTab === state.role);
+    const active = button.dataset.roleTab === role;
+    button.classList.toggle("tab-active", active);
+    button.classList.toggle("text-slate-600", !active);
+    button.classList.toggle("text-slate-800", !active);
   });
 }
 
@@ -60,7 +65,8 @@ async function handleSubmit(event) {
 
   try {
     $("login-button").disabled = true;
-    showMessage("正在验证身份…");
+    showMessage("正在验证身份...");
+
     const user = await login({ username, password });
 
     if (remember) {
@@ -77,13 +83,25 @@ async function handleSubmit(event) {
   }
 }
 
+function bindPasswordToggle() {
+  $("password-toggle")?.addEventListener("click", () => {
+    const input = $("password");
+    const icon = $("password-toggle").querySelector("i");
+    const nextType = input.type === "password" ? "text" : "password";
+    input.type = nextType;
+    if (icon) {
+      icon.className = nextType === "password" ? "fa-regular fa-eye" : "fa-regular fa-eye-slash";
+    }
+  });
+}
+
 async function init() {
   try {
     const user = await getCurrentUser();
     redirectForRole(user);
     return;
   } catch {
-    // Continue with login screen when there is no active session.
+    // No active session.
   }
 
   const remembered = localStorage.getItem("mediark_last_account");
@@ -93,14 +111,12 @@ async function init() {
   }
 
   document.querySelectorAll("[data-role-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.role = button.dataset.roleTab;
-      applyRoleVisuals();
-    });
+    button.addEventListener("click", () => setRole(button.dataset.roleTab));
   });
 
+  bindPasswordToggle();
   $("login-form").addEventListener("submit", handleSubmit);
-  applyRoleVisuals();
+  setRole(state.role);
 }
 
 document.addEventListener("DOMContentLoaded", init);

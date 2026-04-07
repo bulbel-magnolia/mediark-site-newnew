@@ -73,12 +73,15 @@
 
         <div class="p-4 border-t border-slate-800">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold">L</div>
-                <div>
-                    <p class="text-sm font-medium" data-i18n="doctor_name">黎医生</p>
-                    <p class="text-xs text-slate-400" data-i18n="hospital_name">北大肿瘤医院</p>
+                <div id="sidebar-user-avatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold text-sm">?</div>
+                <div class="flex-1 min-w-0">
+                    <p id="sidebar-user-name" class="text-sm font-medium truncate">加载中...</p>
+                    <p id="sidebar-user-role" class="text-xs text-slate-400">临床医生</p>
                 </div>
             </div>
+            <button onclick="sidebarLogout()" class="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
+                <i class="fa-solid fa-right-from-bracket"></i> 退出登录
+            </button>
         </div>
     </aside>
 
@@ -218,6 +221,7 @@
         </div>
     </main>
 
+    <script src="js/app/sidebar.js"></script>
     <script>
         // 国际化字典
         const i18n = {

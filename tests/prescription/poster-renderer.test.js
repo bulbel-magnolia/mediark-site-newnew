@@ -12,7 +12,7 @@ const masterJson = {
       do_list: ["慢慢进食", "按时训练", "观察不适"],
       dont_list: ["吃硬食", "吃太快", "忽视疼痛"],
       red_flags: ["持续呕吐", "剧烈胸痛", "完全无法进食"],
-      footer_badge: "医生审核后使用",
+      footer_badge: "医生确认后发放",
       source_tag: "团队证据包支持"
     }
   },
@@ -35,7 +35,7 @@ assert.equal(payload.heroImage, "网页展示素材库/solution.jpg");
 assert.equal(payload.keyPoints.length, 3);
 assert.equal(payload.doList[0], "慢慢进食");
 assert.equal(payload.redFlags.at(-1), "完全无法进食");
-assert.equal(payload.footer.badge, "医生审核后使用");
+assert.equal(payload.footer.badge, "医生确认后发放");
 assert.equal(payload.footer.sourceTag, "团队证据包支持");
 
 console.log("poster-renderer.test.js passed");
