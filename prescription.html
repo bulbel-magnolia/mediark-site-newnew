@@ -452,25 +452,65 @@
         });
     }
 
-    // 步骤与 AI 模拟逻辑 (保持不变)
+    // === 当前作品 ID（后端生成后保存，用于后续审核/发布） ===
+    let currentWorkId = null;
+
     function goToStep2() {
         document.getElementById('step-1-content').classList.add('hidden');
         const step2 = document.getElementById('step-2-content');
         step2.classList.remove('hidden');
         step2.classList.add('grid');
-        simulateAIGeneration(false);
-        setStepActive(2);   // ⭐ 新增：高亮步骤2，步骤1变绿色 Done
+        runGeneration(false);
+        setStepActive(2);
     }
+
     function goToStep3() {
+        // 先尝试后端发布
+        if (currentWorkId) {
+            fetch(`/api/works/${currentWorkId}/publish`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ note: '医生确认发布' })
+            }).catch(() => {});
+        }
         document.getElementById('step-2-content').classList.add('hidden');
         document.getElementById('step-2-content').classList.remove('grid');
         document.getElementById('step-3-content').classList.remove('hidden');
-        setStepActive(3);   // ⭐ 新增：高亮步骤3，1/2 都变绿色 Done
+        setStepActive(3);
     }
-    function simulateAIGeneration(isRegen) {
-        // [后端接口模拟] 调用 LLM (Large Language Model) API 生成脚本
-        // Backend API Call: POST /api/generate_prescription
-        // Payload: { patient_id: "...", focus_topics: [...], prompt: "..." }
+
+    // === 收集表单数据 ===
+    function collectFormInput() {
+        const pName = document.getElementById('pt_name').innerText;
+        const pDiag = document.getElementById('pt_diagnosis').innerText;
+        const pId = document.getElementById('pt_id').innerText.replace('ID: ', '');
+        const doctorNotes = document.getElementById('doctor-notes').value;
+
+        // 收集勾选的科普重点
+        const focusTopics = [];
+        document.querySelectorAll('#step-1-content input[type=”checkbox”]:checked').forEach(cb => {
+            const label = cb.parentElement.querySelector('span');
+            if (label) focusTopics.push(label.innerText);
+        });
+
+        return {
+            patient: { id: pId, name: pName, diagnosis: pDiag },
+            form: {
+                language: currentLang === 'zh' ? 'zh-CN' : 'en',
+                focusTopics: focusTopics,
+                doctorNotes: doctorNotes
+            },
+            work: {
+                title: `${pName} - 科普处方`,
+                topic: pDiag,
+                format: 'poster-video',
+                audience: 'patient'
+            }
+        };
+    }
+
+    // === 核心生成逻辑：优先后端 API，fallback 前端模拟 ===
+    async function runGeneration(isRegen) {
         const loader = document.getElementById('ai-loader');
         const textArea = document.getElementById('ai-text-area');
         const subStatus = document.getElementById('ai-sub-status');
@@ -479,57 +519,109 @@
         const generatedMedia = document.getElementById('generated-media');
 
         loader.classList.remove('hidden');
-        if(isRegen) textArea.innerHTML = "";
+        if (isRegen) textArea.innerHTML = “”;
 
-        const steps = currentLang === 'zh' ? 
-            ["正在分析患者画像...", "正在检索临床指南...", "正在合成多模态内容..."] :
-            ["Analyzing Patient Persona...", "Retrieving Clinical Guidelines...", "Synthesizing Content..."];
-        
+        const steps = currentLang === 'zh'
+            ? [“正在分析患者画像...”, “正在检索临床指南...”, “正在合成多模态内容...”]
+            : [“Analyzing Patient Persona...”, “Retrieving Clinical Guidelines...”, “Synthesizing Content...”];
         let i = 0;
-        const interval = setInterval(() => { if(i<3) subStatus.innerText = steps[i++]; }, 800);
+        const interval = setInterval(() => { if (i < 3) subStatus.innerText = steps[i++]; }, 800);
 
-        setTimeout(() => {
-            // [数据处理] 接收返回的 JSON 数据并解析
-            // Response: { ai_generated_content: "...", media_url: "...", status: "success" }
-            clearInterval(interval);
-            loader.classList.add('hidden');
-            
-            const pName = document.getElementById('pt_name').innerText;
-            const contentZh = `
-                <h3 class="text-lg font-bold text-slate-900 mb-2">【${pName}的专属康复指南】</h3>
-                <p class="mb-4"><strong>${pName}你好：</strong><br>根据您的最新诊断，本周我们重点关注饮食恢复。</p>
-                <h4 class="font-bold text-blue-800 mt-4 mb-1">关键医嘱：</h4>
-                <ul class="list-disc pl-5 mb-4 space-y-1">
-                    <li>少量多餐，避免烫食。</li>
-                    <li>保持每日 30 分钟轻度步行。</li>
-                </ul>
-                ${isRegen ? '<p class="text-orange-600 text-sm mt-2">Running: AI已根据您的意见调整语气为“鼓励/温和”。</p>' : ''}
-            `;
-            const contentEn = `
-                <h3 class="text-lg font-bold text-slate-900 mb-2">【Recovery Guide for ${pName}】</h3>
-                <p class="mb-4"><strong>Dear ${pName}:</strong><br>Based on your latest diagnosis, we focus on diet recovery this week.</p>
-                <h4 class="font-bold text-blue-800 mt-4 mb-1">Key Orders:</h4>
-                <ul class="list-disc pl-5 mb-4 space-y-1">
-                    <li>Small, frequent meals. Avoid hot food.</li>
-                    <li>Maintain 30 mins of light walking daily.</li>
-                </ul>
-                ${isRegen ? '<p class="text-orange-600 text-sm mt-2">Running: Tone adjusted to "Encouraging" based on feedback.</p>' : ''}
-            `;
-            textArea.innerHTML = currentLang === 'zh' ? contentZh : contentEn;
-            textArea.classList.add('typing-cursor');
-            setTimeout(() => {
-                textArea.classList.remove('typing-cursor');
-                if(!isRegen) {
-                    previewPlaceholder.classList.add('hidden');
-                    generatedMedia.classList.remove('hidden');
-                    btnApprove.disabled = false;
-                    btnApprove.classList.remove('opacity-50', 'cursor-not-allowed');
+        const input = collectFormInput();
+        let resultHtml = null;
+
+        try {
+            // --- 尝试调用后端真实 API ---
+            const endpoint = isRegen && currentWorkId
+                ? `/api/works/${currentWorkId}/regenerate`
+                : '/api/works/generate';
+
+            const response = await fetch(endpoint, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input: input })
+            });
+
+            if (!response.ok) throw new Error('API error');
+
+            const data = await response.json();
+            const work = data.work;
+            currentWorkId = work.id;
+
+            // 从后端返回的 masterJson 提取内容
+            const version = work.latestVersion || work.versions?.[0];
+            const masterJson = version?.masterJson;
+            const posterPayload = version?.posterPayload;
+
+            if (masterJson) {
+                // 渲染后端生成的真实内容
+                const title = posterPayload?.title || masterJson.title || input.patient.name;
+                const sections = masterJson.sections || [];
+
+                let html = `<h3 class=”text-lg font-bold text-slate-900 mb-2”>【${title}】</h3>`;
+                sections.forEach(sec => {
+                    html += `<h4 class=”font-bold text-blue-800 mt-4 mb-1”>${sec.heading || ''}</h4>`;
+                    if (sec.body) html += `<p class=”mb-2 text-sm”>${sec.body}</p>`;
+                    if (sec.bullets && sec.bullets.length) {
+                        html += '<ul class=”list-disc pl-5 mb-4 space-y-1”>';
+                        sec.bullets.forEach(b => { html += `<li>${b}</li>`; });
+                        html += '</ul>';
+                    }
+                });
+                if (isRegen) {
+                    html += '<p class=”text-orange-600 text-sm mt-2”>AI 已根据您的意见重新生成内容。</p>';
                 }
-            }, 500);
-        }, 2500);
+                resultHtml = html;
+            }
+        } catch (apiErr) {
+            // --- Fallback: 前端模拟 ---
+            currentWorkId = null;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const pName = input.patient.name;
+            if (currentLang === 'zh') {
+                resultHtml = `
+                    <h3 class=”text-lg font-bold text-slate-900 mb-2”>【${pName}的专属康复指南】</h3>
+                    <p class=”mb-4”><strong>${pName}你好：</strong><br>根据您的最新诊断，本周我们重点关注饮食恢复。</p>
+                    <h4 class=”font-bold text-blue-800 mt-4 mb-1”>关键医嘱：</h4>
+                    <ul class=”list-disc pl-5 mb-4 space-y-1”>
+                        <li>少量多餐，避免烫食。</li>
+                        <li>保持每日 30 分钟轻度步行。</li>
+                    </ul>
+                    ${isRegen ? '<p class=”text-orange-600 text-sm mt-2”>AI已根据您的意见调整语气为”鼓励/温和”。</p>' : ''}
+                `;
+            } else {
+                resultHtml = `
+                    <h3 class=”text-lg font-bold text-slate-900 mb-2”>【Recovery Guide for ${pName}】</h3>
+                    <p class=”mb-4”><strong>Dear ${pName}:</strong><br>Based on your latest diagnosis, we focus on diet recovery this week.</p>
+                    <h4 class=”font-bold text-blue-800 mt-4 mb-1”>Key Orders:</h4>
+                    <ul class=”list-disc pl-5 mb-4 space-y-1”>
+                        <li>Small, frequent meals. Avoid hot food.</li>
+                        <li>Maintain 30 mins of light walking daily.</li>
+                    </ul>
+                    ${isRegen ? '<p class=”text-orange-600 text-sm mt-2”>Tone adjusted to “Encouraging” based on feedback.</p>' : ''}
+                `;
+            }
+        }
+
+        // --- 渲染结果 ---
+        clearInterval(interval);
+        loader.classList.add('hidden');
+        textArea.innerHTML = resultHtml;
+        textArea.classList.add('typing-cursor');
+        setTimeout(() => {
+            textArea.classList.remove('typing-cursor');
+            if (!isRegen) {
+                previewPlaceholder.classList.add('hidden');
+                generatedMedia.classList.remove('hidden');
+                btnApprove.disabled = false;
+                btnApprove.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }, 500);
     }
+
     function toggleEditMode() { document.getElementById('review-view-edit').classList.toggle('hidden'); }
-    function regenerateContent() { toggleEditMode(); simulateAIGeneration(true); }
+    function regenerateContent() { toggleEditMode(); runGeneration(true); }
 </script>
 </body>
 </html>

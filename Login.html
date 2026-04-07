@@ -331,7 +331,8 @@
             }
         });
 
-        // ================= 主登录逻辑 (对接后端 API) =================
+        // ================= 主登录逻辑 =================
+        // 优先调后端 API，后端不可用时 fallback 到本地模拟（适配 GitHub Pages）
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -345,57 +346,89 @@
                 return;
             }
 
-            // UI Loading
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner w-5 h-5 animate-spin"></i> 验证中...`;
-            
 
+            // --- 尝试后端 API ---
+            let user = null;
             try {
-                // 调用后端认证 API
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: accountInput, password: passwordInput })
                 });
-
-                const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(data.error || '登录失败');
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || '账号或密码错误');
+                }
+                const data = await response.json();
+                user = data.user;
+            } catch (apiErr) {
+                // 判断是"后端不存在"还是"密码错误"
+                const isNetworkError = apiErr.message.includes('Unexpected token')
+                    || apiErr.message.includes('Failed to fetch')
+                    || apiErr.message.includes('NetworkError');
+
+                if (!isNetworkError) {
+                    // 后端存在但验证失败
+                    alert("登录失败：" + apiErr.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return;
                 }
 
-                // 登录成功 — 后端自动设置 session cookie
-                const user = data.user;
-
-                // 记住账号
-                if (rememberMe) {
-                    localStorage.setItem('mediark_remembered_account', accountInput);
+                // --- Fallback: 本地模拟模式（GitHub Pages 等无后端环境）---
+                if (currentRole === 'admin') {
+                    if (accountInput === 'admin' && passwordInput === 'admin123') {
+                        user = { id: 0, displayName: '管理员', username: 'admin', role: 'admin' };
+                    }
                 } else {
-                    localStorage.removeItem('mediark_remembered_account');
+                    // 本地模拟账号：doctor / doctor123
+                    const demoAccounts = [
+                        { username: 'doctor', password: 'doctor123', displayName: '黎医生', role: 'doctor' },
+                        { username: 'reviewer', password: 'review123', displayName: '审核医生', role: 'doctor' }
+                    ];
+                    const match = demoAccounts.find(a => a.username === accountInput && a.password === passwordInput);
+                    if (match) {
+                        user = { id: 0, displayName: match.displayName, username: match.username, role: match.role };
+                    }
+                    // 也兼容 localStorage 注册的用户
+                    if (!user) {
+                        const usersDB = JSON.parse(localStorage.getItem('mediark_users') || '[]');
+                        const localUser = usersDB.find(u =>
+                            (u.jobId === accountInput || u.mobile === accountInput) && u.password === passwordInput
+                        );
+                        if (localUser) {
+                            user = { id: 0, displayName: localUser.realName, username: localUser.jobId, role: 'doctor' };
+                        }
+                    }
                 }
 
-                // 存一份用户信息供前端侧边栏等组件使用
-                sessionStorage.setItem('mediark_current_user', JSON.stringify({
-                    id: user.id,
-                    name: user.displayName,
-                    username: user.username,
-                    role: user.role
-                }));
-
-                // 根据角色跳转
-                if (user.role === 'admin') {
-                    window.location.href = 'Admin.html';
-                } else {
-                    window.location.href = 'dashboard.html';
+                if (!user) {
+                    alert("登录失败：账号或密码错误");
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return;
                 }
-
-            } catch (err) {
-                alert("登录失败：" + err.message);
-                btn.disabled = false;
-                btn.innerHTML = originalText;
             }
+
+            // --- 登录成功 ---
+            if (rememberMe) {
+                localStorage.setItem('mediark_remembered_account', accountInput);
+            } else {
+                localStorage.removeItem('mediark_remembered_account');
+            }
+
+            sessionStorage.setItem('mediark_current_user', JSON.stringify({
+                id: user.id,
+                name: user.displayName,
+                username: user.username,
+                role: user.role
+            }));
+
+            window.location.href = user.role === 'admin' ? 'Admin.html' : 'dashboard.html';
         });
     </script>
 </body>

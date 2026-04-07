@@ -153,26 +153,36 @@
         let allUsers = [];
         let currentActionUserId = null; // 后端使用 numeric id
 
-        // 1. 权限检查 & 初始化 (对接后端 API)
+        // 1. 权限检查 & 初始化 (后端优先，fallback 到 sessionStorage)
         window.addEventListener('DOMContentLoaded', async () => {
+            // 先尝试后端 API
             try {
                 const res = await fetch('/api/auth/me', { credentials: 'include' });
-                if (!res.ok) throw new Error('未登录');
-                const data = await res.json();
-                if (data.user.role !== 'admin') throw new Error('非管理员');
-                document.getElementById('adminNameDisplay').innerText = data.user.displayName || '管理员';
-                sessionStorage.setItem('mediark_current_user', JSON.stringify({
-                    id: data.user.id, name: data.user.displayName,
-                    username: data.user.username, role: data.user.role
-                }));
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.user.role !== 'admin') { alert('需要管理员权限'); window.location.href = 'Login.html'; return; }
+                    document.getElementById('adminNameDisplay').innerText = data.user.displayName || '管理员';
+                    sessionStorage.setItem('mediark_current_user', JSON.stringify({
+                        id: data.user.id, name: data.user.displayName,
+                        username: data.user.username, role: data.user.role
+                    }));
+                    loadData();
+                    return;
+                }
+            } catch (e) { /* 后端不可用，继续 fallback */ }
+
+            // Fallback: 从 sessionStorage 检查
+            const session = JSON.parse(sessionStorage.getItem('mediark_current_user') || 'null');
+            if (session && session.role === 'admin') {
+                document.getElementById('adminNameDisplay').innerText = session.name || '管理员';
                 loadData();
-            } catch (err) {
+            } else {
                 alert('请先以管理员身份登录。');
                 window.location.href = 'Login.html';
             }
         });
 
-        // 2. 从后端 API 读取用户列表
+        // 2. 读取用户列表（后端优先，fallback 到 localStorage）
         async function loadData() {
             try {
                 const res = await fetch('/api/users', { credentials: 'include' });
@@ -181,8 +191,10 @@
                 allUsers = data.items || data.users || [];
                 renderTable(allUsers);
             } catch (err) {
-                console.error('加载用户列表失败:', err);
-                renderTable([]);
+                // Fallback: 从 localStorage 读取注册用户
+                const stored = localStorage.getItem('mediark_users');
+                allUsers = stored ? JSON.parse(stored) : [];
+                renderTable(allUsers);
             }
         }
 
