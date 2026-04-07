@@ -131,7 +131,7 @@
             <div id="step-1-content" class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden transition-all duration-500 fade-in">
                 <div class="p-6 border-b border-slate-100 bg-slate-50/50">
                     <h2 class="text-lg font-bold text-slate-800" data-i18n="sec_params">设置处方生成参数</h2>
-                    <p class="text-sm text-slate-500 mt-1" data-i18n="sec_params_desc">系统将结合上方“患者画像”与您的“医生医嘱”生成内容</p>
+                    <p class="text-sm text-slate-500 mt-1" data-i18n="sec_params_desc">系统将结合上方「患者画像」与您的「医生医嘱」生成内容</p>
                 </div>
                 <div class="p-8 space-y-8">
                     <div>
@@ -269,7 +269,7 @@
             ai_status: "正在分析患者画像...",
             // 表单
             sec_params: "设置处方生成参数",
-            sec_params_desc: "系统将结合上方“患者画像”与您的“医生医嘱”生成内容",
+            sec_params_desc: "系统将结合上方「患者画像」与您的「医生医嘱」生成内容",
             lbl_focus: "本次科普重点 (多选)",
             tag_diet: "术后饮食", tag_swallow: "吞咽训练", tag_wound: "伤口护理", tag_mind: "心理疏导",
             lbl_prompt: "医生特别备注 / 生成指令",
@@ -488,7 +488,7 @@
 
         // 收集勾选的科普重点
         const focusTopics = [];
-        document.querySelectorAll('#step-1-content input[type=”checkbox”]:checked').forEach(cb => {
+        document.querySelectorAll('#step-1-content input[type="checkbox"]:checked').forEach(cb => {
             const label = cb.parentElement.querySelector('span');
             if (label) focusTopics.push(label.innerText);
         });
@@ -519,11 +519,11 @@
         const generatedMedia = document.getElementById('generated-media');
 
         loader.classList.remove('hidden');
-        if (isRegen) textArea.innerHTML = “”;
+        if (isRegen) textArea.innerHTML = "";
 
         const steps = currentLang === 'zh'
-            ? [“正在分析患者画像...”, “正在检索临床指南...”, “正在合成多模态内容...”]
-            : [“Analyzing Patient Persona...”, “Retrieving Clinical Guidelines...”, “Synthesizing Content...”];
+            ? ["正在分析患者画像...", "正在检索临床指南...", "正在合成多模态内容..."]
+            : ["Analyzing Patient Persona...", "Retrieving Clinical Guidelines...", "Synthesizing Content..."];
         let i = 0;
         const interval = setInterval(() => { if (i < 3) subStatus.innerText = steps[i++]; }, 800);
 
@@ -558,18 +558,18 @@
                 const title = posterPayload?.title || masterJson.title || input.patient.name;
                 const sections = masterJson.sections || [];
 
-                let html = `<h3 class=”text-lg font-bold text-slate-900 mb-2”>【${title}】</h3>`;
+                let html = `<h3 class="text-lg font-bold text-slate-900 mb-2">【${title}】</h3>`;
                 sections.forEach(sec => {
-                    html += `<h4 class=”font-bold text-blue-800 mt-4 mb-1”>${sec.heading || ''}</h4>`;
-                    if (sec.body) html += `<p class=”mb-2 text-sm”>${sec.body}</p>`;
+                    html += `<h4 class="font-bold text-blue-800 mt-4 mb-1">${sec.heading || ''}</h4>`;
+                    if (sec.body) html += `<p class="mb-2 text-sm">${sec.body}</p>`;
                     if (sec.bullets && sec.bullets.length) {
-                        html += '<ul class=”list-disc pl-5 mb-4 space-y-1”>';
+                        html += '<ul class="list-disc pl-5 mb-4 space-y-1">';
                         sec.bullets.forEach(b => { html += `<li>${b}</li>`; });
                         html += '</ul>';
                     }
                 });
                 if (isRegen) {
-                    html += '<p class=”text-orange-600 text-sm mt-2”>AI 已根据您的意见重新生成内容。</p>';
+                    html += '<p class="text-orange-600 text-sm mt-2">AI 已根据您的意见重新生成内容。</p>';
                 }
                 resultHtml = html;
             }
@@ -581,25 +581,25 @@
             const pName = input.patient.name;
             if (currentLang === 'zh') {
                 resultHtml = `
-                    <h3 class=”text-lg font-bold text-slate-900 mb-2”>【${pName}的专属康复指南】</h3>
-                    <p class=”mb-4”><strong>${pName}你好：</strong><br>根据您的最新诊断，本周我们重点关注饮食恢复。</p>
-                    <h4 class=”font-bold text-blue-800 mt-4 mb-1”>关键医嘱：</h4>
-                    <ul class=”list-disc pl-5 mb-4 space-y-1”>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">【${pName}的专属康复指南】</h3>
+                    <p class="mb-4"><strong>${pName}你好：</strong><br>根据您的最新诊断，本周我们重点关注饮食恢复。</p>
+                    <h4 class="font-bold text-blue-800 mt-4 mb-1">关键医嘱：</h4>
+                    <ul class="list-disc pl-5 mb-4 space-y-1">
                         <li>少量多餐，避免烫食。</li>
                         <li>保持每日 30 分钟轻度步行。</li>
                     </ul>
-                    ${isRegen ? '<p class=”text-orange-600 text-sm mt-2”>AI已根据您的意见调整语气为”鼓励/温和”。</p>' : ''}
+                    ${isRegen ? '<p class="text-orange-600 text-sm mt-2">AI已根据您的意见调整语气为"鼓励/温和"。</p>' : ''}
                 `;
             } else {
                 resultHtml = `
-                    <h3 class=”text-lg font-bold text-slate-900 mb-2”>【Recovery Guide for ${pName}】</h3>
-                    <p class=”mb-4”><strong>Dear ${pName}:</strong><br>Based on your latest diagnosis, we focus on diet recovery this week.</p>
-                    <h4 class=”font-bold text-blue-800 mt-4 mb-1”>Key Orders:</h4>
-                    <ul class=”list-disc pl-5 mb-4 space-y-1”>
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">【Recovery Guide for ${pName}】</h3>
+                    <p class="mb-4"><strong>Dear ${pName}:</strong><br>Based on your latest diagnosis, we focus on diet recovery this week.</p>
+                    <h4 class="font-bold text-blue-800 mt-4 mb-1">Key Orders:</h4>
+                    <ul class="list-disc pl-5 mb-4 space-y-1">
                         <li>Small, frequent meals. Avoid hot food.</li>
                         <li>Maintain 30 mins of light walking daily.</li>
                     </ul>
-                    ${isRegen ? '<p class=”text-orange-600 text-sm mt-2”>Tone adjusted to “Encouraging” based on feedback.</p>' : ''}
+                    ${isRegen ? '<p class="text-orange-600 text-sm mt-2">Tone adjusted to "Encouraging" based on feedback.</p>' : ''}
                 `;
             }
         }
