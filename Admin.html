@@ -1,320 +1,183 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>后台管理 - 智瘤方舟 MediArk</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
-        body { font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif; }
-        .sidebar-item:hover { background: rgba(255, 255, 255, 0.1); }
-        .sidebar-item.active { background: rgba(255, 255, 255, 0.15); border-right: 3px solid #60a5fa; }
-        .table-row:hover { background: #f8fafc; }
-        .btn-action { transition: all 0.2s ease; }
-        .btn-action:hover { transform: translateY(-1px); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediArk Admin Console</title>
+  <link rel="stylesheet" href="styles/mediark-app.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="flex min-h-screen">
-        <!-- 侧边栏 -->
-        <aside class="w-16 lg:w-56 bg-gradient-to-b from-slate-800 to-slate-900 flex flex-col fixed h-full z-20">
-            <div class="h-16 flex items-center justify-center lg:justify-start lg:px-4 border-b border-slate-700">
-                <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-                    <i data-lucide="heart-pulse" class="w-5 h-5 text-white"></i>
-                </div>
-                <span class="hidden lg:block ml-3 text-white font-bold">智瘤方舟</span>
-            </div>
-            <nav class="flex-1 py-4">
-                <a href="#" class="sidebar-item flex items-center justify-center lg:justify-start h-12 lg:px-4 text-slate-400 hover:text-white transition-colors">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                    <span class="hidden lg:block ml-3 text-sm">工作台</span>
-                </a>
-                <a href="#" class="sidebar-item active flex items-center justify-center lg:justify-start h-12 lg:px-4 text-white transition-colors">
-                    <i data-lucide="users" class="w-5 h-5"></i>
-                    <span class="hidden lg:block ml-3 text-sm">用户管理</span>
-                </a>
-            </nav>
-            <div class="p-2 lg:p-4 border-t border-slate-700">
-                <button onclick="logout()" class="w-full flex items-center justify-center lg:justify-start h-10 lg:px-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-700">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                    <span class="hidden lg:block ml-3 text-sm">退出登录</span>
-                </button>
-            </div>
-        </aside>
-        
-        <!-- 主内容区 -->
-        <main class="flex-1 ml-16 lg:ml-56">
-            <!-- 顶部栏 -->
-            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-10">
-                <div class="flex items-center text-sm">
-                    <span class="text-gray-400">后台管理</span>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 mx-2"></i>
-                    <span class="text-gray-800 font-medium">医师账户管理</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-sm text-gray-600" id="adminNameDisplay">管理员</span>
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i data-lucide="shield" class="w-4 h-4 text-blue-600"></i>
-                    </div>
-                </div>
-            </header>
-            
-            <!-- 页面内容 -->
-            <div class="p-6">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-                    <!-- 头部与搜索 -->
-                    <div class="p-6 border-b border-gray-100">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <h2 class="text-lg font-semibold text-gray-800">注册医师列表</h2>
-                                <p class="text-sm text-gray-500 mt-1">查看并管理已注册的医生账号权限</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <div class="relative">
-                                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                                    <input type="text" id="searchInput" placeholder="搜索姓名/工号..." 
-                                           class="pl-9 pr-4 py-2 w-48 lg:w-64 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                                </div>
-                                <button onclick="searchUsers()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                                    <i data-lucide="search" class="w-4 h-4"></i>
-                                    查询
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 数据表格 -->
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="bg-gray-50 border-b border-gray-100">
-                                    <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">工号 (Job ID)</th>
-                                    <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">姓名</th>
-                                    <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">所属医院</th>
-                                    <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">手机号</th>
-                                    <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">角色</th>
-                                    <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userTableBody">
-                                <!-- 数据由JS渲染 -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- 底部统计 -->
-                    <div class="p-4 border-t border-gray-100 flex items-center justify-between">
-                        <span class="text-sm text-gray-500">共 <span id="totalCount">0</span> 条注册记录</span>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-    
-    <!-- 重置密码确认弹窗 -->
-    <div id="resetModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl animate-fade-in-up">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                    <i data-lucide="key" class="w-5 h-5 text-amber-600"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-800">重置密码</h3>
-            </div>
-            <p class="text-gray-600 mb-6">确定要重置用户 <span id="resetUserName" class="font-medium text-gray-800"></span> 的密码吗？<br>重置后密码将变为 <span class="font-mono bg-gray-100 px-1 rounded">123456</span>。</p>
-            <div class="flex gap-3 justify-end">
-                <button onclick="closeModal('resetModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">取消</button>
-                <button onclick="confirmReset()" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors">确认重置</button>
-            </div>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div>
+        <div class="brand-mark">M</div>
+        <h2 class="brand-title" style="font-size: 1.8rem; margin: 14px 0 6px;">MediArk</h2>
+        <p class="meta-text" style="color: rgba(244,239,231,.68);">Admin Console</p>
+      </div>
+      <nav>
+        <a class="nav-link active" href="Admin.html"><i class="fa-solid fa-shield-heart"></i><span>Admin</span></a>
+        <a class="nav-link" href="prescription.html"><i class="fa-solid fa-file-waveform"></i><span>Generate</span></a>
+        <a class="nav-link" href="dashboard.html"><i class="fa-solid fa-user-doctor"></i><span>Reviewer Desk</span></a>
+        <a class="nav-link" href="library.html"><i class="fa-solid fa-photo-film"></i><span>Published Library</span></a>
+      </nav>
+    </aside>
+
+    <div class="shell-main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Operations + Governance</p>
+          <h1 class="page-title" style="font-size: 2.4rem;">Contest Control Room</h1>
         </div>
-    </div>
-    
-    <!-- 删除用户确认弹窗 -->
-    <div id="deleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl animate-fade-in-up">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <i data-lucide="trash-2" class="w-5 h-5 text-red-600"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-800">删除用户</h3>
-            </div>
-            <p class="text-gray-600 mb-6">确定要永久删除用户 <span id="deleteUserName" class="font-medium text-gray-800"></span> 吗？<br><span class="text-red-500 text-xs">此操作将同时清除该医生的所有登录权限。</span></p>
-            <div class="flex gap-3 justify-end">
-                <button onclick="closeModal('deleteModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">取消</button>
-                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">确认删除</button>
-            </div>
+        <div class="topbar-actions">
+          <span id="flash-message" style="display:none;"></span>
+          <span class="chip">Signed in as <strong id="admin-name" style="margin-left: 6px;">Admin</strong></span>
+          <button id="logout-button" class="button-ghost">退出</button>
         </div>
+      </header>
+
+      <div class="page-wrap section-stack">
+        <section class="hero-card">
+          <div class="inline-actions" style="justify-content: space-between; align-items: flex-start;">
+            <div>
+              <p class="eyebrow">Admin Scope</p>
+              <h2 class="page-title" style="font-size: 2.6rem;">平台配置、作品流转与最终发布</h2>
+              <p class="body-muted" style="max-width: 920px;">
+                这里负责管理账号、维护 Schema 版本、观察作品状态与执行发布，但不会跳过 doctor-reviewer 的医学批准步骤。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="metrics-strip" class="metric-grid"></section>
+
+        <section class="management-grid">
+          <div class="section-stack">
+            <section class="table-card">
+              <div class="inline-actions" style="justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 class="section-title">User Registry</h3>
+                  <p class="body-muted">只保留两个核心角色：`admin` 与 `doctor-reviewer`。</p>
+                </div>
+              </div>
+              <div class="table-wrap" style="margin-top: 18px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Updated</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="table-card">
+              <div class="inline-actions" style="justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 class="section-title">Works Lifecycle</h3>
+                  <p class="body-muted">生成、审核、批准、发布与归档都在同一状态面板内完成。</p>
+                </div>
+              </div>
+              <div class="table-wrap" style="margin-top: 18px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Work</th>
+                      <th>Status</th>
+                      <th>Reviewer</th>
+                      <th>Updated</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="works-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div class="section-stack">
+            <section class="form-card">
+              <h3 class="section-title">Create User</h3>
+              <p class="body-muted">用于快速创建比赛演示账号或审核员账号。</p>
+              <form id="user-create-form" class="form-grid" style="margin-top: 18px;">
+                <div class="field">
+                  <label for="new-username">Username</label>
+                  <input id="new-username" type="text" required>
+                </div>
+                <div class="field">
+                  <label for="new-display-name">Display Name</label>
+                  <input id="new-display-name" type="text" required>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="new-role">Role</label>
+                    <select id="new-role">
+                      <option value="doctor-reviewer">doctor-reviewer</option>
+                      <option value="admin">admin</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="new-password">Password</label>
+                    <input id="new-password" type="text" required>
+                  </div>
+                </div>
+                <button class="button" type="submit">创建账号</button>
+              </form>
+            </section>
+
+            <section class="form-card">
+              <div class="inline-actions" style="justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 class="section-title">Schema Studio</h3>
+                  <p class="body-muted">用结构化 JSON 控制处方字段，而不是前端写死标签。</p>
+                </div>
+              </div>
+              <div id="schema-list" class="queue-list" style="margin-top: 18px;"></div>
+
+              <form id="schema-editor-form" class="form-grid" style="margin-top: 18px;">
+                <div class="field-row">
+                  <div class="field">
+                    <label for="schema-mode">Mode</label>
+                    <select id="schema-mode">
+                      <option value="version">为当前 schema 新建版本</option>
+                      <option value="new">创建新 schema</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="schema-version-title">Version Title</label>
+                    <input id="schema-version-title" type="text" placeholder="例如：contest-v2">
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="schema-slug">Schema Slug</label>
+                  <input id="schema-slug" type="text">
+                </div>
+                <div class="field">
+                  <label for="schema-name">Schema Name</label>
+                  <input id="schema-name" type="text">
+                </div>
+                <div class="field">
+                  <label for="schema-description">Description</label>
+                  <input id="schema-description" type="text">
+                </div>
+                <div class="field">
+                  <label for="schema-editor">Schema JSON</label>
+                  <textarea id="schema-editor"></textarea>
+                </div>
+                <button class="button" type="submit">保存并激活</button>
+              </form>
+            </section>
+          </div>
+        </section>
+      </div>
     </div>
-    
-    <script>
-        lucide.createIcons();
-        
-        let allUsers = []; // 存储从LocalStorage读取的数据
-        let currentActionJobId = null; // 当前正在操作的工号
+  </div>
 
-        // 1. 权限检查 & 初始化
-        window.addEventListener('DOMContentLoaded', () => {
-            // 检查是否登录
-            const session = JSON.parse(sessionStorage.getItem('mediark_current_user'));
-            if (!session || session.role !== 'admin') {
-                alert('非法访问！请先以管理员身份登录。');
-                window.location.href = 'Login.html';
-                return;
-            }
-            document.getElementById('adminNameDisplay').innerText = session.name || '管理员';
-
-            // 加载数据
-            loadData();
-        });
-
-        // 2. 从 LocalStorage 读取数据
-        function loadData() {
-            // 读取之前在 register.html 存入的 'mediark_users'
-            const storedData = localStorage.getItem('mediark_users');
-            allUsers = storedData ? JSON.parse(storedData) : [];
-            
-            // 如果没有数据，搞几个假数据撑场面（仅用于演示）
-            if (allUsers.length === 0) {
-                // allUsers = [
-                //     { jobId: 'DEMO-001', realName: '测试医生', hospital: '演示医院', mobile: '13800000000', role: 'doctor', status: 'normal' }
-                // ];
-            }
-
-            renderTable(allUsers);
-        }
-
-        // 3. 渲染表格
-        function renderTable(data) {
-            const tbody = document.getElementById('userTableBody');
-            
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-gray-400">暂无注册用户数据</td></tr>`;
-                document.getElementById('totalCount').innerText = 0;
-                return;
-            }
-
-            tbody.innerHTML = data.map(user => `
-                <tr class="table-row border-b border-gray-50 transition-colors">
-                    <td class="py-4 px-6">
-                        <span class="text-sm font-mono text-gray-600">${user.jobId}</span>
-                    </td>
-                    <td class="py-4 px-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span class="text-sm font-medium text-blue-600">${user.realName ? user.realName[0] : '无'}</span>
-                            </div>
-                            <span class="text-sm font-medium text-gray-800">${user.realName}</span>
-                        </div>
-                    </td>
-                    <td class="py-4 px-6">
-                        <span class="text-sm text-gray-600">${user.hospital || user.hospital_name || '-'}</span>
-                    </td>
-                    <td class="py-4 px-6">
-                        <span class="text-sm font-mono text-gray-500">${user.mobile}</span>
-                    </td>
-                    <td class="py-4 px-6">
-                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            ${user.role === 'doctor' ? '临床医生' : user.role}
-                        </span>
-                    </td>
-                    <td class="py-4 px-6">
-                        <div class="flex gap-2">
-                            <button onclick="showResetModal('${user.jobId}', '${user.realName}')" 
-                                    class="btn-action px-3 py-1.5 text-xs font-medium text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 transition-colors">
-                                重置密码
-                            </button>
-                            <button onclick="showDeleteModal('${user.jobId}', '${user.realName}')" 
-                                    class="btn-action px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
-                                删除
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-            
-            document.getElementById('totalCount').textContent = data.length;
-            lucide.createIcons(); // 重新渲染新插入的图标
-        }
-        
-        // 4. 搜索功能
-        function searchUsers() {
-            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-            if (!keyword) {
-                renderTable(allUsers);
-                return;
-            }
-            const filtered = allUsers.filter(u => 
-                (u.realName && u.realName.toLowerCase().includes(keyword)) || 
-                (u.jobId && u.jobId.toLowerCase().includes(keyword))
-            );
-            renderTable(filtered);
-        }
-        
-        // 5. 弹窗控制逻辑
-        function showResetModal(jobId, name) {
-            currentActionJobId = jobId;
-            document.getElementById('resetUserName').textContent = name;
-            document.getElementById('resetModal').classList.remove('hidden');
-        }
-        
-        function showDeleteModal(jobId, name) {
-            currentActionJobId = jobId;
-            document.getElementById('deleteUserName').textContent = name;
-            document.getElementById('deleteModal').classList.remove('hidden');
-        }
-        
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-            currentActionJobId = null;
-        }
-        
-        // 6. 核心操作：重置密码
-        function confirmReset() {
-            if (!currentActionJobId) return;
-            
-            // 找到用户并修改密码
-            const index = allUsers.findIndex(u => u.jobId === currentActionJobId);
-            if (index !== -1) {
-                allUsers[index].password = '123456'; // 重置为默认
-                localStorage.setItem('mediark_users', JSON.stringify(allUsers)); // 写回 localStorage
-                
-                alert(`用户 ${allUsers[index].realName} 的密码已重置为: 123456`);
-                closeModal('resetModal');
-            }
-        }
-        
-        // 7. 核心操作：删除用户
-        function confirmDelete() {
-            if (!currentActionJobId) return;
-            
-            // 过滤掉该用户
-            const newUsers = allUsers.filter(u => u.jobId !== currentActionJobId);
-            
-            if (newUsers.length !== allUsers.length) {
-                allUsers = newUsers;
-                localStorage.setItem('mediark_users', JSON.stringify(allUsers)); // 写回 localStorage
-                
-                renderTable(allUsers); // 刷新表格
-                closeModal('deleteModal');
-                
-                // 显示个 Toast 提示会更好，这里简单用 alert
-                // alert('用户已删除'); 
-            }
-        }
-        
-        // 8. 退出登录
-        function logout() {
-            if (confirm('确定要退出管理后台吗？')) {
-                sessionStorage.removeItem('mediark_current_user');
-                window.location.href = 'Login.html';
-            }
-        }
-        
-        // 回车搜索支持
-        document.getElementById('searchInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') searchUsers();
-        });
-    </script>
+  <script type="module" src="js/app/admin-console.js"></script>
 </body>
 </html>

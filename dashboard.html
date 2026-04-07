@@ -1,357 +1,70 @@
-<!--
--------------------------------------------------------------------------
-[模块名称]: 医生智能效能看板 (Doctor Smart Dashboard)
-[文件名称]: dashboard.html
-[开发语言]: HTML5 / Tailwind CSS / JS
-[所属子系统]: 医生智能工作台
-[功能描述]: 
-    1. 可视化展示医生运营数据（处方数、沟通时间、依从性）。
-    2. 渲染待办审核任务列表与科普阅读趋势图表。
-    3. 作为工作台的主导航枢纽，连接各个子模块。
--------------------------------------------------------------------------
--->
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - 智瘤方舟工作台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediArk Reviewer Desk</title>
+  <link rel="stylesheet" href="styles/mediark-app.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
-<body class="bg-slate-50 h-screen flex overflow-hidden">
-
-    <!-- 左侧边栏 (保持一致) -->
-    <aside class="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
-        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
-            <!-- 请确保 Logo 路径正确 -->
-            <img src="网页展示素材库/logo/logo.png" class="h-8 w-auto bg-white rounded-full p-1" alt="Logo">
-            <span class="font-bold text-lg tracking-wide">MediArk</span>
-        </div>
-
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <!-- 激活状态：工作台 -->
-            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-900/50 transition">
-                <i class="fa-solid fa-chart-pie w-5"></i>
-                <span data-i18n="dashboard">工作台</span>
-            </a>
-            <a href="patients.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
-                <i class="fa-solid fa-user-group w-5"></i>
-                <span data-i18n="patients">患者管理</span>
-            </a>
-            <a href="prescription.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
-                <i class="fa-solid fa-file-prescription w-5"></i>
-                <span data-i18n="prescription">数字处方开具</span>
-            </a>
-            <a href="knowledge.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
-                <i class="fa-solid fa-book-medical w-5"></i>
-                <span data-i18n="knowledge">知识库 (PKU)</span>
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-slate-800">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold">L</div>
-                <div>
-                    <p class="text-sm font-medium" data-i18n="doctor_name">黎医生</p>
-                    <p class="text-xs text-slate-400" data-i18n="hospital_name">北大肿瘤医院</p>
-                </div>
-            </div>
-        </div>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div>
+        <div class="brand-mark">M</div>
+        <h2 class="brand-title" style="font-size: 1.8rem; margin: 14px 0 6px;">MediArk</h2>
+        <p class="meta-text" style="color: rgba(244,239,231,.68);">Reviewer Desk</p>
+      </div>
+      <nav>
+        <a class="nav-link active" href="dashboard.html"><i class="fa-solid fa-user-doctor"></i><span>Reviewer Desk</span></a>
+        <a class="nav-link" href="prescription.html"><i class="fa-solid fa-file-waveform"></i><span>Generate</span></a>
+        <a class="nav-link" href="Admin.html"><i class="fa-solid fa-shield-heart"></i><span>Admin Console</span></a>
+        <a class="nav-link" href="library.html"><i class="fa-solid fa-photo-film"></i><span>Published Library</span></a>
+      </nav>
     </aside>
 
-    <!-- 主内容区 -->
-    <main class="flex-1 flex flex-col h-screen relative">
-        
-        <!-- 顶部导航 -->
-        <header class="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-20">
-            <h1 class="text-xl font-semibold text-slate-800" data-i18n="dashboard_title">运营概览</h1>
-            <div class="flex items-center gap-4">
-                <button onclick="toggleLang()" class="px-3 py-1 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 transition">
-                    <i class="fa-solid fa-globe mr-2 text-slate-500"></i><span id="lang-display">English</span>
-                </button>
-                <a href="index.html" class="text-slate-500 hover:text-blue-600 transition" title="退出">
-                    <i class="fa-solid fa-right-from-bracket text-xl"></i>
-                </a>
-            </div>
-        </header>
-
-        <!-- 核心内容 -->
-        <div class="flex-1 overflow-y-auto p-8">
-            
-            <!-- 欢迎语 -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold text-slate-800 mb-1"><span data-i18n="greeting">早上好，黎医生！</span> 👋</h2>
-                <p class="text-slate-500 text-sm" data-i18n="greeting_sub">这是您使用「智瘤方舟」赋能患者的第 128 天。</p>
-            </div>
-
-            <!-- 1. 数据概览卡片 (Stats Cards) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Card 1 -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase" data-i18n="stat_rx">已开具科普处方</p>
-                            <h3 class="text-3xl font-bold text-slate-800 mt-2">1,284</h3>
-                        </div>
-                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-file-medical"></i></div>
-                    </div>
-                    <p class="text-xs text-green-600 mt-4 font-medium flex items-center"><i class="fa-solid fa-arrow-up mr-1"></i> +12% <span class="text-slate-400 ml-1" data-i18n="vs_month">较上月</span></p>
-                </div>
-                
-                <!-- Card 2 -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase" data-i18n="stat_time">累计节省沟通时间</p>
-                            <h3 class="text-3xl font-bold text-slate-800 mt-2">320 <span class="text-lg font-normal text-slate-400">h</span></h3>
-                        </div>
-                        <div class="p-2 bg-purple-50 text-purple-600 rounded-lg"><i class="fa-solid fa-hourglass-half"></i></div>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-4" data-i18n="stat_time_desc">相当于 40 个工作日</p>
-                </div>
-
-                <!-- Card 3 -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase" data-i18n="stat_compliance">患者依从性提升</p>
-                            <h3 class="text-3xl font-bold text-green-600 mt-2">45%</h3>
-                        </div>
-                        <div class="p-2 bg-green-50 text-green-600 rounded-lg"><i class="fa-solid fa-heart-pulse"></i></div>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-4" data-i18n="stat_compliance_desc">基于随访数据反馈</p>
-                </div>
-
-                <!-- Card 4 -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition ring-2 ring-orange-100">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase" data-i18n="stat_pending">待审核 AI 草稿</p>
-                            <h3 class="text-3xl font-bold text-orange-500 mt-2">3</h3>
-                        </div>
-                        <div class="p-2 bg-orange-50 text-orange-500 rounded-lg animate-pulse"><i class="fa-solid fa-bell"></i></div>
-                    </div>
-                    <a href="prescription.html" class="text-xs text-blue-600 mt-4 font-medium hover:underline block" data-i18n="link_process">立即处理 &rarr;</a>
-                </div>
-            </div>
-
-            <!-- 2. 图表与任务区 -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                <!-- 左侧：数据图表 (CSS模拟) -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-bold text-slate-800" data-i18n="chart_title">患者科普阅读与完播率趋势</h3>
-                        <select class="text-xs border-slate-200 rounded bg-slate-50 text-slate-500">
-                        <option data-i18n="opt_7days">近 7 天</option>
-                        <option data-i18n="opt_30days">近 30 天</option>
-                        </select>
-                    </div>
-                    
-                    <!-- 模拟柱状图 -->
-                    <div class="h-64 flex items-end justify-between gap-2 px-2">
-                        <!-- Bar 1 -->
-                        <div class="w-full bg-blue-50 hover:bg-blue-100 rounded-t relative group transition-all" style="height: 40%">
-                            <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-slate-500 opacity-0 group-hover:opacity-100">40%</div>
-                        </div>
-                        <!-- Bar 2 -->
-                        <div class="w-full bg-blue-100 hover:bg-blue-200 rounded-t relative group transition-all" style="height: 55%"></div>
-                        <!-- Bar 3 -->
-                        <div class="w-full bg-blue-200 hover:bg-blue-300 rounded-t relative group transition-all" style="height: 45%"></div>
-                        <!-- Bar 4 -->
-                        <div class="w-full bg-blue-300 hover:bg-blue-400 rounded-t relative group transition-all" style="height: 70%"></div>
-                        <!-- Bar 5 -->
-                        <div class="w-full bg-blue-400 hover:bg-blue-500 rounded-t relative group transition-all" style="height: 60%"></div>
-                        <!-- Bar 6 -->
-                        <div class="w-full bg-blue-500 hover:bg-blue-600 rounded-t relative group transition-all" style="height: 85%"></div>
-                        <!-- Bar 7 -->
-                        <div class="w-full bg-blue-600 hover:bg-blue-700 rounded-t relative group transition-all" style="height: 92%">
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg">Today</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between text-xs text-slate-400 mt-2 px-2">
-                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                    </div>
-                </div>
-
-                <!-- 右侧：待办任务 -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-800 mb-4" data-i18n="tasks_title">专家审核任务</h3>
-                    <div class="space-y-4">
-                        
-                        <!-- Task 1 -->
-                        <div class="p-3 border border-slate-100 rounded-lg hover:bg-blue-50 transition cursor-pointer group">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded" data-i18n="tag_ai_done" >AI 生成完毕</span>
-                                <span class="text-xs text-slate-400">10 min ago</span>
-                            </div>
-                            <p class="text-sm font-medium text-slate-800" data-i18n="review_p1_name" >张建国 (食管癌术后)</p>
-                            <p class="text-xs text-slate-500 mt-1" data-i18n="review_p1_topic" >主题：术后第一周流食指南</p>
-                            <div class="mt-3 flex justify-end">
-                                <a href="prescription.html" class="text-xs bg-white border border-slate-200 px-3 py-1 rounded text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition" data-i18n="btn_review">去审核</a>
-                            </div>
-                        </div>
-
-                        <!-- Task 2 -->
-                        <div class="p-3 border border-slate-100 rounded-lg hover:bg-blue-50 transition cursor-pointer group">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded" data-i18n="tag_wait_confirm" >待确认</span>
-                                <span class="text-xs text-slate-400">2h ago</span>
-                            </div>
-                            <p class="text-sm font-medium text-slate-800" data-i18n="review_p2_name" >李淑芬 (肺癌化疗)</p>
-                            <p class="text-xs text-slate-500 mt-1" data-i18n="review_p2_topic" >主题：化疗副作用应对(恶心)</p>
-                            <div class="mt-3 flex justify-end">
-                                <button class="text-xs bg-white border border-slate-200 px-3 py-1 rounded text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition" data-i18n="btn_review">去审核</button>
-                            </div>
-                        </div>
-
-                        <!-- Task 3 -->
-                        <div class="p-3 border border-slate-100 rounded-lg hover:bg-blue-50 transition cursor-pointer group">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded" data-i18n="tag_generating" >多模态生成中</span>
-                                <span class="text-xs text-slate-400">Just now</span>
-                            </div>
-                            <p class="text-sm font-medium text-slate-800"  data-i18n="review_p3_name" >王强 (早期筛查)</p>
-                            <p class="text-xs text-slate-500 mt-1" data-i18n="review_p3_topic" >主题：胃镜检查科普视频</p>
-                            <div class="mt-3 flex justify-end">
-                                <span class="text-xs text-slate-400 italic">Processing...</span>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-
+    <div class="shell-main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Clinical Review</p>
+          <h1 class="page-title" style="font-size: 2.4rem;">医学科普审核工作台</h1>
         </div>
-    </main>
+        <div class="topbar-actions">
+          <span id="dashboard-message" style="display:none;"></span>
+          <a class="button-soft" href="prescription.html">新建生成任务</a>
+          <span class="chip">Reviewer <strong id="reviewer-name" style="margin-left: 6px;">Doctor</strong></span>
+          <button id="logout-button" class="button-ghost">退出</button>
+        </div>
+      </header>
 
-    <script>
-        // 国际化字典
-        const i18n = {
-            zh: {
-                dashboard: "工作台", patients: "患者管理", prescription: "数字处方开具", knowledge: "知识库 (PKU)",
-                doctor_name: "黎医生", hospital_name: "北大肿瘤医院 · 食管肿瘤科",
-                dashboard_title: "运营概览",
-                greeting: "早上好，黎医生！", greeting_sub: "这是您使用「智瘤方舟」赋能患者的第 128 天。",
-                stat_rx: "已开具科普处方", vs_month: "较上月",
-                stat_time: "累计节省沟通时间", stat_time_desc: "相当于 40 个工作日",
-                stat_compliance: "患者依从性提升", stat_compliance_desc: "基于随访数据反馈",
-                stat_pending: "待审核 AI 草稿", link_process: "立即处理 →",
-                chart_title: "患者科普阅读与完播率趋势",
-                tasks_title: "专家审核任务", btn_review: "去审核",
-                head_pending: "待办审核任务",
-                tag_ai_done: "AI 生成完毕", tag_wait_confirm: "待确认", tag_generating: "多模态生成中",
-                btn_review: "去审核", status_processing: "生成中...",
-                // 卡片内容
-                review_p1_name: "张建国 (食管癌术后)", review_p1_topic: "主题：术后第一周流食指南",
-                review_p2_name: "李淑芬 (肺癌化疗)", review_p2_topic: "主题：化疗副作用应对(恶心)",
-                review_p3_name: "王强 (早期筛查)", review_p3_topic: "主题：胃镜检查科普视频",
-                opt_7days: "近 7 天",
-                opt_30days: "近 30 天"
-            },
-            en: {
-                dashboard: "Dashboard", patients: "Patients", prescription: "Create Prescription", knowledge: "Knowledge Base",
-                doctor_name: "Dr. Li", hospital_name: "PKU Cancer Hospital",
-                dashboard_title: "Overview",
-                greeting: "Good Morning, Dr. Li!", greeting_sub: "Day 128 of empowering patients with MediArk.",
-                stat_rx: "Digital Prescriptions", vs_month: "vs last month",
-                stat_time: "Time Saved", stat_time_desc: "Approx. 40 working days",
-                stat_compliance: "Compliance Rate", stat_compliance_desc: "Based on follow-up data",
-                stat_pending: "Pending Reviews", link_process: "Process Now →",
-                chart_title: "Patient Engagement Trends",
-                tasks_title: "Pending Reviews", btn_review: "Review",
-                head_pending: "Pending Reviews",
-                tag_ai_done: "AI Draft Ready", tag_wait_confirm: "Needs Approval", tag_generating: "Generating...",
-                btn_review: "Review", status_processing: "Processing...",
-                // Card Content
-                review_p1_name: "Zhang Jianguo (Post-op)", review_p1_topic: "Topic: W1 Liquid Diet Guide",
-                review_p2_name: "Li Shufen (Chemo)", review_p2_topic: "Topic: Managing Nausea",
-                review_p3_name: "Wang Qiang (Screening)", review_p3_topic: "Topic: Gastroscopy Intro Video",
-                opt_7days: "Last 7 Days",
-                opt_30days: "Last 30 Days"
-            }
-        };
+      <div class="page-wrap section-stack">
+        <section class="hero-card">
+          <p class="eyebrow">Doctor Reviewer Only</p>
+          <h2 class="page-title" style="font-size: 2.6rem;">你的职责不是管理平台，而是给出可信的临床审核结论。</h2>
+          <p class="body-muted" style="max-width: 920px;">
+            这里聚焦审核队列、海报预览、多模态资产和时间线，不把作品流转管理与医学批准混在一起。
+          </p>
+        </section>
 
-    // ==========================================
-        //   通用语言管理脚本 (Ultimate Fix Version)
-        // ==========================================
+        <section id="metrics-strip" class="metric-grid"></section>
 
-        // 1. 优先读取 URL 参数
-        const urlParams = new URLSearchParams(window.location.search);
-        const langParam = urlParams.get('lang');
+        <section class="dashboard-grid">
+          <section class="panel-card">
+            <div class="inline-actions" style="justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3 class="section-title">Review Queue</h3>
+                <p class="body-muted">点击队列项切换右侧详情。</p>
+              </div>
+            </div>
+            <div id="queue-list" class="queue-list" style="margin-top: 18px;"></div>
+          </section>
 
-        // 2. 其次读取浏览器本地存储
-        const savedLang = localStorage.getItem('mediark_lang');
+          <section id="work-detail"></section>
+        </section>
+      </div>
+    </div>
+  </div>
 
-        // 3. 确定当前语言
-        let currentLang = langParam || savedLang || 'zh';
-
-        // [关键修复]：如果 URL 带了参数，必须立刻存入 LocalStorage
-        // 这样下一个页面才能“记住”你的选择
-        if (langParam) {
-            localStorage.setItem('mediark_lang', langParam);
-        }
-
-        // 4. 页面加载时执行翻译
-        document.addEventListener('DOMContentLoaded', () => {
-            applyLanguage(currentLang);
-        });
-
-        // --- 国际化字典 (保持你的字典内容不变，这里省略以节省篇幅) ---
-        // 请确保这里保留了 const i18n = { ... }; 的完整内容
-        // ...
-        // ...
-        
-        // --- 切换语言函数 ---
-        function toggleLang() {
-            currentLang = currentLang === 'zh' ? 'en' : 'zh';
-            localStorage.setItem('mediark_lang', currentLang); // 切换时保存
-            applyLanguage(currentLang);
-        }
-
-        // --- 执行翻译函数 ---
-        function applyLanguage(lang) {
-            // 1. 更新按钮文字
-            const btnDisplay = document.getElementById('lang-display');
-            if(btnDisplay) btnDisplay.innerText = lang === 'zh' ? 'English' : '中文';
-            
-            // 2. 更新所有带 data-i18n 属性的文字
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang] && i18n[lang][key]) {
-                    if (el.tagName === 'INPUT' && el.hasAttribute('placeholder')) {
-                        el.placeholder = i18n[lang][key];
-                    } else {
-                        el.innerText = i18n[lang][key];
-                    }
-                }
-            });
-
-            // [进阶修复]：更新侧边栏的所有链接，让它们也带上参数 (双重保险)
-            // 这样鼠标悬停时就能看到 ?lang=en，体验更好
-            if (lang === 'en') {
-                const links = document.querySelectorAll('aside nav a');
-                links.forEach(link => {
-                    // 防止重复添加
-                    if (!link.href.includes('?lang=en')) {
-                        // 简单的处理：如果链接没有参数就加 ?，有就加 &
-                        const separator = link.href.includes('?') ? '&' : '?';
-                        link.href = link.href + separator + 'lang=en';
-                    }
-                });
-            }
-        }
-        
-        
-    </script>
+  <script type="module" src="js/app/reviewer-dashboard.js"></script>
 </body>
 </html>

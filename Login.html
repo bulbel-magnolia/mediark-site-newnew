@@ -1,399 +1,92 @@
-<!--
--------------------------------------------------------------------------
-[模块名称]: 统一身份认证与安全登录 (Unified Authentication)
-[文件名称]: Login.html
-[开发语言]: HTML5 / JavaScript (ES6+)
-[所属子系统]: 安全访问控制子系统
-[功能描述]: 
-    1. 提供多角色（医生/管理员）登录入口及 Tab 切换逻辑。
-    2. 实现密码显隐查看、"记住我"功能及本地 Session 模拟。
-    3. 集成"忘记密码"重置流程与弹窗交互逻辑。
--------------------------------------------------------------------------
--->
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户登录 - 智瘤方舟 (MediArk)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { blue: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' } }
-                }
-            }
-        }
-    </script>
-    <style>
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .input-focus:focus {
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-            border-color: #3b82f6;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-            transform: translateY(-1px);
-        }
-        .tab-active {
-            background-color: white;
-            color: #2563eb;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediArk Login</title>
+  <link rel="stylesheet" href="styles/mediark-app.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
-<body class="min-h-screen bg-gray-900 font-sans">
-    
-    <!-- 背景图 -->
-    <div class="fixed inset-0 z-0">
-        <img src="网页展示素材库/login_bg.jpg" alt="MediArk Background" class="w-full h-full object-cover">
-        <div class="absolute inset-0 bg-black/30"></div>
-    </div>
-    
-    <!-- 主登录区域 -->
-    <div class="relative z-10 min-h-screen flex items-center justify-end px-4 md:px-16 lg:px-24">
-        <div class="glass-card rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in mr-0 md:mr-8 lg:mr-16">
-            
-            <!-- Logo -->
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl mb-4 shadow-lg">
-                    <i data-lucide="heart-pulse" class="w-8 h-8 text-white"></i>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-800">智瘤方舟</h1>
-                <p class="text-sm text-gray-500 mt-1">MediArk · 守护认知的诺亚方舟</p>
-            </div>
-            
-            <!-- Tab切换 -->
-            <div class="flex bg-gray-100 rounded-xl p-1 mb-6">
-                <button id="tab-doctor" onclick="switchTab('doctor')" 
-                        class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 tab-active">
-                    <span class="flex items-center justify-center gap-2">
-                        <i data-lucide="stethoscope" class="w-4 h-4"></i> 医生登录
-                    </span>
-                </button>
-                <button id="tab-admin" onclick="switchTab('admin')" 
-                        class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 hover:text-gray-800">
-                    <span class="flex items-center justify-center gap-2">
-                        <i data-lucide="shield-check" class="w-4 h-4"></i> 管理员
-                    </span>
-                </button>
-            </div>
-            
-            <!-- 登录表单 -->
-            <form id="loginForm" class="space-y-5">
-                <!-- 账号 -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                        <span id="label-account">手机号 / 工号</span>
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
-                        </div>
-                        <input type="text" id="account" 
-                               class="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
-                               placeholder="请输入手机号或工号">
-                    </div>
-                </div>
-                
-                <!-- 密码 -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">密码</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-                        </div>
-                        <input type="password" id="password" 
-                               class="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 input-focus focus:outline-none transition-all"
-                               placeholder="请输入密码">
-                        <button type="button" onclick="togglePassword('password')" 
-                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
-                            <i data-lucide="eye" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 记住我 & 忘记密码 -->
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 cursor-pointer group">
-                        <input type="checkbox" id="remember" 
-                               class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <span class="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">记住我</span>
-                    </label>
-                    <!-- 点击触发弹窗 -->
-                    <button type="button" onclick="openResetModal()" class="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors">
-                        忘记密码？
-                    </button>
-                </div>
-                
-                <!-- 登录按钮 -->
-                <button type="submit" id="loginBtn"
-                        class="w-full py-3.5 btn-primary text-white font-medium rounded-xl shadow-lg flex items-center justify-center gap-2">
-                    <i data-lucide="log-in" class="w-5 h-5"></i>
-                    登录
-                </button>
-            </form>
-            
-            <!-- 注册链接 (已修正为右下角) -->
-            <div class="mt-4 text-right"> 
-                <span class="text-sm text-gray-500">还没有账户？</span>
-                <a href="register.html" class="text-sm text-blue-600 font-medium hover:text-blue-700 hover:underline transition-colors">
-                    注册账户
-                </a>
-            </div>
-            
-            <!-- 条款 -->
-            <div class="mt-6 pt-6 border-t border-gray-100">
-                <p class="text-xs text-gray-400 text-center">
-                    登录即表示您同意我们的 <a href="#" class="text-blue-500 hover:underline">服务条款</a>
-                </p>
-            </div>
+<body>
+  <div class="auth-shell">
+    <section class="auth-side">
+      <div class="brand-mark">M</div>
+      <p class="eyebrow" style="margin-top: 28px;">Nascent Track</p>
+      <h1 class="hero-title" style="font-size: clamp(2.6rem, 4vw, 4.6rem); margin: 14px 0 18px; line-height: 0.96;">
+        Clinical Education,<br>
+        Built for Review.
+      </h1>
+      <p class="body-muted" style="color: rgba(244,239,231,.78); max-width: 560px;">
+        这里不是“直接让 AI 自行给建议”的黑箱。MediArk 的目标是把文字、海报、图片、短视频统一绑定在一个可审阅的 JSON 事实上，再由 doctor-reviewer 给出临床可信签署。
+      </p>
+      <div class="section-stack" style="margin-top: 36px;">
+        <article class="queue-item" style="background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12);">
+          <strong>Admin Console</strong>
+          <p class="body-muted" style="color: rgba(244,239,231,.72);">管理账号、Schema 版本、作品发布与归档。</p>
+        </article>
+        <article class="queue-item" style="background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12);">
+          <strong>Doctor Reviewer Desk</strong>
+          <p class="body-muted" style="color: rgba(244,239,231,.72);">审核医学内容表达是否稳妥，而不是充当平台管理员。</p>
+        </article>
+        <article class="queue-item" style="background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12);">
+          <strong>JSON-driven Generation</strong>
+          <p class="body-muted" style="color: rgba(244,239,231,.72);">所有文本、图片、视频都可回溯到同一份结构化输入。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="auth-panel-wrap">
+      <div class="auth-panel">
+        <div class="inline-actions" style="justify-content: space-between; align-items: flex-start;">
+          <div>
+            <p class="eyebrow">Secure Access</p>
+            <h2 class="page-title" style="font-size: 2.3rem; margin-top: 12px;">MediArk 控制入口</h2>
+          </div>
+          <a class="button-ghost" href="library.html">公开作品库</a>
         </div>
-    </div>
 
-    <!-- ========================================== -->
-    <!--  新增：重置密码弹窗 (Modal)                -->
-    <!-- ========================================== -->
-    <div id="resetModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <!-- 黑色半透明背景遮罩 -->
-        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-
-        <div class="fixed inset-0 z-10 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                
-                <!-- 弹窗内容卡片 -->
-                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg p-6">
-                    
-                    <!-- 弹窗标题 -->
-                    <div class="text-center mb-6">
-                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 mb-4">
-                            <i data-lucide="key-round" class="h-6 w-6 text-blue-600"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">重置登录密码</h3>
-                        <p class="mt-2 text-sm text-gray-500">请输入您的账号信息以重置密码</p>
-                    </div>
-
-                    <!-- 弹窗表单 -->
-                    <form id="resetForm" class="space-y-4">
-                        <!-- 账号验证 -->
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">账号 (手机号/工号)</label>
-                            <input type="text" id="resetAccount" required placeholder="请输入您的账号"
-                                class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-
-                        <!-- 验证码 (模拟) -->
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">验证码</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="resetCode" required placeholder="验证码"
-                                    class="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <button type="button" id="resetGetCodeBtn" onclick="handleResetGetCode()"
-                                    class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-blue-600 text-xs rounded-lg transition-colors">
-                                    获取验证码
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 新密码 -->
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">新密码</label>
-                            <input type="password" id="resetNewPwd" required placeholder="设置新密码"
-                                class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-
-                        <!-- 确认新密码 -->
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">确认新密码</label>
-                            <input type="password" id="resetConfirmPwd" required placeholder="再次输入"
-                                class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-
-                        <!-- 底部按钮 -->
-                        <div class="mt-6 flex gap-3">
-                            <button type="button" onclick="closeResetModal()"
-                                class="flex-1 justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                                取消
-                            </button>
-                            <button type="submit"
-                                class="flex-1 justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
-                                确认重置
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+        <div class="auth-tabbar" style="margin-top: 28px;">
+          <button type="button" class="auth-tab active" data-role-tab="doctor-reviewer">Doctor Reviewer</button>
+          <button type="button" class="auth-tab" data-role-tab="admin">Admin</button>
         </div>
-    </div>
 
-    <!-- JS 逻辑 -->
-    <script>
-        lucide.createIcons();
-        let currentRole = 'doctor';
+        <div style="margin-top: 26px;">
+          <h3 id="role-title" class="section-title">临床审核入口</h3>
+          <p id="role-hint" class="body-muted"></p>
+        </div>
 
-        // 1. 初始化
-        window.addEventListener('DOMContentLoaded', () => {
-            const rememberedAccount = localStorage.getItem('mediark_remembered_account');
-            if (rememberedAccount) {
-                document.getElementById('account').value = rememberedAccount;
-                document.getElementById('remember').checked = true;
-            }
-        });
+        <form id="login-form" class="form-grid" style="margin-top: 24px;">
+          <div class="field">
+            <label id="username-label" for="username">账号</label>
+            <input id="username" type="text" autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="password">密码</label>
+            <input id="password" type="password" autocomplete="current-password">
+          </div>
+          <div class="inline-actions" style="justify-content: space-between;">
+            <label class="choice-pill">
+              <input id="remember-account" type="checkbox">
+              <span>记住账号</span>
+            </label>
+            <span id="credential-helper" class="meta-text"></span>
+          </div>
+          <div class="inline-actions" style="justify-content: space-between;">
+            <span id="login-message" style="display:none;"></span>
+            <button id="login-button" class="button" type="submit">登录并进入工作台</button>
+          </div>
+        </form>
 
-        // 2. Tab 切换
-        function switchTab(role) {
-            currentRole = role;
-            const docBtn = document.getElementById('tab-doctor');
-            const adminBtn = document.getElementById('tab-admin');
-            const label = document.getElementById('label-account');
-            
-            // 样式切换逻辑 (与之前一致)
-            if(role === 'doctor') {
-                docBtn.className = "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 tab-active";
-                docBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><i data-lucide="stethoscope" class="w-4 h-4"></i> 医生登录</span>';
-                adminBtn.className = "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 hover:text-gray-800";
-                label.innerText = "手机号 / 工号";
-                document.getElementById('account').placeholder = "请输入手机号或工号";
-            } else {
-                adminBtn.className = "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-300 tab-active";
-                adminBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i> 管理员</span>';
-                docBtn.className = "flex-1 py-2.5 px-4 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 hover:text-gray-800";
-                label.innerText = "管理员账号";
-                document.getElementById('account').placeholder = "请输入管理员账号";
-            }
-            lucide.createIcons();
-        }
+        <div class="queue-item" style="margin-top: 26px;">
+          <strong>比赛使用建议</strong>
+          <p class="body-muted">
+            展示时优先走 `admin -> 生成作品 -> submit review -> doctor-reviewer -> approve -> admin publish` 的闭环，最能体现“临床可信稳妥”的评审口味。
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
 
-        // 3. 密码显隐
-        function togglePassword(id) {
-            const input = document.getElementById(id);
-            input.type = input.type === 'password' ? 'text' : 'password';
-        }
-
-        // ================= 重置密码 Modal 逻辑 =================
-        function openResetModal() {
-            document.getElementById('resetModal').classList.remove('hidden');
-        }
-
-        function closeResetModal() {
-            document.getElementById('resetModal').classList.add('hidden');
-            document.getElementById('resetForm').reset(); // 清空表单
-        }
-
-        function handleResetGetCode() {
-            const btn = document.getElementById('resetGetCodeBtn');
-            btn.disabled = true;
-            btn.innerText = "已发送";
-            alert("模拟验证码：123456 (仅用于测试)");
-        }
-
-        // 提交重置
-        document.getElementById('resetForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const account = document.getElementById('resetAccount').value;
-            const newPwd = document.getElementById('resetNewPwd').value;
-            const confirmPwd = document.getElementById('resetConfirmPwd').value;
-
-            // 1. 校验密码一致性
-            if (newPwd !== confirmPwd) {
-                alert("两次输入的新密码不一致，请检查！");
-                return;
-            }
-
-            // 2. 模拟查找用户并更新
-            let usersDB = JSON.parse(localStorage.getItem('mediark_users') || '[]');
-            const userIndex = usersDB.findIndex(u => u.jobId === account || u.mobile === account);
-
-            if (userIndex !== -1) {
-                // 更新密码
-                usersDB[userIndex].password = newPwd;
-                localStorage.setItem('mediark_users', JSON.stringify(usersDB));
-                alert("密码重置成功！请使用新密码登录。");
-                closeResetModal();
-            } else {
-                alert("未找到该账号信息，请检查输入是否正确。");
-            }
-        });
-
-        // ================= 主登录逻辑 =================
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const accountInput = document.getElementById('account').value.trim();
-            const passwordInput = document.getElementById('password').value;
-            const rememberMe = document.getElementById('remember').checked;
-            const btn = document.getElementById('loginBtn');
-
-            // 1. 空值校验 (弹出提示框)
-            if (!accountInput || !passwordInput) {
-                alert("提示：请补全账号和密码信息！");
-                return;
-            }
-
-            // UI Loading
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> 验证中...`;
-            lucide.createIcons();
-
-            setTimeout(() => {
-                let loginSuccess = false;
-                let userData = null;
-
-                // 2. 后台验证
-                if (currentRole === 'admin') {
-                    if (accountInput === 'admin' && passwordInput === 'admin123') {
-                        loginSuccess = true;
-                        userData = { name: '超级管理员', role: 'admin', jobId: 'ADMIN-001' };
-                    }
-                } else {
-                    const usersDB = JSON.parse(localStorage.getItem('mediark_users') || '[]');
-                    const user = usersDB.find(u => 
-                        (u.jobId === accountInput || u.mobile === accountInput) && 
-                        u.password === passwordInput
-                    );
-                    if (user) {
-                        loginSuccess = true;
-                        userData = user;
-                    }
-                }
-
-                // 3. 结果处理
-                if (loginSuccess) {
-                    if (rememberMe) {
-                        localStorage.setItem('mediark_remembered_account', accountInput);
-                    } else {
-                        localStorage.removeItem('mediark_remembered_account');
-                    }
-                    sessionStorage.setItem('mediark_current_user', JSON.stringify(userData));
-                    
-                    const targetPage = currentRole === 'admin' ? 'Admin.html' : 'dashboard.html';
-                    
-                    // 登录成功
-                    window.location.href = targetPage; 
-                } else {
-                    alert("登录失败：账号或密码错误，请重新输入。");
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            }, 800);
-        });
-    </script>
+  <script type="module" src="js/app/login.js"></script>
 </body>
 </html>
