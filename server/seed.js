@@ -97,6 +97,58 @@ function seedUser(db, { username, displayName, role, password }) {
   return Number(result.lastInsertRowid);
 }
 
+function seedPatients(db, doctorId) {
+  const existing = get(db, "SELECT id FROM patients WHERE created_by = :doctorId LIMIT 1", { doctorId });
+  if (existing) return;
+
+  const patients = [
+    {
+      name: "张建国",
+      diagnosis: "食管鳞癌",
+      stage: "术后第1周",
+      tags: [
+        { text: "高焦虑", category: "心理" },
+        { text: "小学学历", category: "社会" },
+        { text: "视觉偏好", category: "偏好" }
+      ],
+      notes: "患者情绪紧张，需要温和鼓励的沟通方式"
+    },
+    {
+      name: "李淑芬",
+      diagnosis: "肺腺癌",
+      stage: "化疗期",
+      tags: [
+        { text: "情绪稳定", category: "心理" },
+        { text: "方言(粤语)", category: "社会" },
+        { text: "图文偏好", category: "偏好" }
+      ],
+      notes: "患者配合度高，家属参与度好"
+    },
+    {
+      name: "王强",
+      diagnosis: "高危人群筛查",
+      stage: "早期筛查",
+      tags: [
+        { text: "高知群体", category: "社会" },
+        { text: "关注数据", category: "偏好" }
+      ],
+      notes: "患者关注循证数据，偏好科学论据"
+    }
+  ];
+
+  for (const p of patients) {
+    run(db, `INSERT INTO patients (name, diagnosis, stage, tags_json, notes, created_by)
+             VALUES (:name, :diagnosis, :stage, :tagsJson, :notes, :createdBy)`, {
+      name: p.name,
+      diagnosis: p.diagnosis,
+      stage: p.stage,
+      tagsJson: toJson(p.tags),
+      notes: p.notes,
+      createdBy: doctorId
+    });
+  }
+}
+
 export function seedDatabase(db) {
   const adminId = seedUser(db, {
     username: "admin",
@@ -105,19 +157,22 @@ export function seedDatabase(db) {
     password: "admin123"
   });
 
-  seedUser(db, {
+  const doctorId = seedUser(db, {
     username: "doctor",
-    displayName: "Doctor Workspace",
+    displayName: "黎医生",
     role: "doctor",
     password: "doctor123"
   });
 
   seedUser(db, {
     username: "reviewer",
-    displayName: "Doctor Reviewer",
+    displayName: "王主任(审核专家)",
     role: "doctor",
     password: "review123"
   });
+
+  // Seed example patients for the doctor
+  seedPatients(db, doctorId);
 
   const existingSchema = get(db, "SELECT id FROM schemas WHERE slug = :slug", {
     slug: "clinical-education-prescription"

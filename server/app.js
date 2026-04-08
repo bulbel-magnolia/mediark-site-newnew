@@ -9,6 +9,7 @@ import { createAuthRouter } from "./routes/auth.js";
 import { createLibraryRouter } from "./routes/library.js";
 import { createSchemasRouter } from "./routes/schemas.js";
 import { createUsersRouter } from "./routes/users.js";
+import { createPatientsRouter } from "./routes/patients.js";
 import { createWorksRouter } from "./routes/works.js";
 import { seedDatabase } from "./seed.js";
 
@@ -31,6 +32,7 @@ export function createApp({ db = createDatabase(), disableStatic = false, genera
   app.use("/api/auth", createAuthRouter({ db, auth }));
   app.use("/api/users", createUsersRouter({ db, auth }));
   app.use("/api/schemas", createSchemasRouter({ db, auth }));
+  app.use("/api/patients", createPatientsRouter({ db, auth }));
   app.use("/api/works", createWorksRouter({ db, auth, generationRuntime }));
   app.use("/api/library", createLibraryRouter({ db }));
 
