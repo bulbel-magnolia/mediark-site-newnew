@@ -93,7 +93,58 @@ async function loadLocalConfig() {
 
 const LOCAL_MEDIARK_CONFIG = await loadLocalConfig();
 
-export const MEDIARK_CONFIG = mergeConfigOverrides(BASE_MEDIARK_CONFIG, LOCAL_MEDIARK_CONFIG);
+// Support environment variables for server deployment (Render, Railway, etc.)
+// Falls back gracefully when process.env is unavailable (browser context)
+function loadEnvConfig() {
+  try {
+    const env = typeof process !== "undefined" ? process.env : {};
+    if (!env.MEDIARK_TEXT_API_KEY && !env.MEDIARK_IMAGE_API_KEY) {
+      return {};
+    }
+
+    return {
+      mode: env.MEDIARK_MODE || "live",
+      providers: {
+        ...(env.MEDIARK_TEXT_API_KEY ? {
+          text_master: {
+            baseUrl: env.MEDIARK_TEXT_BASE_URL || "",
+            apiKey: env.MEDIARK_TEXT_API_KEY || "",
+            model: env.MEDIARK_TEXT_MODEL || "gpt-4o"
+          },
+          text_reviewer: {
+            baseUrl: env.MEDIARK_TEXT_BASE_URL || "",
+            apiKey: env.MEDIARK_TEXT_API_KEY || "",
+            model: env.MEDIARK_TEXT_MODEL || "gpt-4o"
+          }
+        } : {}),
+        ...(env.MEDIARK_IMAGE_API_KEY ? {
+          image_main: {
+            baseUrl: env.MEDIARK_IMAGE_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3",
+            apiKey: env.MEDIARK_IMAGE_API_KEY || "",
+            model: env.MEDIARK_IMAGE_MODEL || "doubao-seedream-5-0-260128"
+          }
+        } : {}),
+        ...(env.MEDIARK_VIDEO_API_KEY ? {
+          video_main: {
+            baseUrl: env.MEDIARK_VIDEO_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3",
+            apiKey: env.MEDIARK_VIDEO_API_KEY || "",
+            model: env.MEDIARK_VIDEO_MODEL || "doubao-seedance-1-5-pro-251215"
+          }
+        } : {})
+      }
+    };
+  } catch {
+    return {};
+  }
+}
+
+const ENV_CONFIG = loadEnvConfig();
+
+// Priority: local file > env vars > base defaults
+export const MEDIARK_CONFIG = mergeConfigOverrides(
+  mergeConfigOverrides(BASE_MEDIARK_CONFIG, ENV_CONFIG),
+  LOCAL_MEDIARK_CONFIG
+);
 
 export function getProviderRegistry() {
   return cloneConfig(MEDIARK_CONFIG.providers);

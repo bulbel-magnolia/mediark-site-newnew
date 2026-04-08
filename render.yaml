@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: mediark
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/app.js
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PORT
+        value: "3000"
+      - key: MEDIARK_MODE
+        sync: false
+      - key: MEDIARK_TEXT_API_KEY
+        sync: false
+      - key: MEDIARK_TEXT_BASE_URL
+        sync: false
+      - key: MEDIARK_TEXT_MODEL
+        sync: false
+      - key: MEDIARK_IMAGE_API_KEY
+        sync: false
+      - key: MEDIARK_IMAGE_BASE_URL
+        sync: false
+      - key: MEDIARK_IMAGE_MODEL
+        sync: false
+      - key: MEDIARK_VIDEO_API_KEY
+        sync: false
+      - key: MEDIARK_VIDEO_BASE_URL
+        sync: false
+      - key: MEDIARK_VIDEO_MODEL
+        sync: false
