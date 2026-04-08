@@ -223,6 +223,9 @@
                     <p class="text-slate-500 text-sm mt-2 font-mono" id="ai-sub-status">Building Master JSON...</p>
                 </div>
 
+                <!-- 运行模式提示 -->
+                <div id="gen-mode-banner" class="hidden mb-4"></div>
+
                 <!-- 生成状态摘要 -->
                 <div id="gen-status-bar" class="hidden mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3">
@@ -788,6 +791,7 @@
         var work = null;
         var diagnostics = null;
 
+        var isLiveMode = false;
         try {
             var endpoint = isRegen && currentWorkId
                 ? '/api/works/' + currentWorkId + '/regenerate'
@@ -798,11 +802,24 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ input: input })
             });
-            if (!response.ok) throw new Error('API error');
+
+            if (response.status === 401) {
+                // 未登录 — 提示并引导
+                clearInterval(interval);
+                loader.style.display = 'none';
+                if (confirm('需要登录后才能使用 AI 真实生成功能。\n\n点击"确定"前往登录页面，或"取消"使用演示模式。')) {
+                    window.location.href = 'Login.html';
+                    return;
+                }
+                throw new Error('auth_skipped');
+            }
+
+            if (!response.ok) throw new Error('API error ' + response.status);
 
             var data = await response.json();
             work = data.work;
             currentWorkId = work.id;
+            isLiveMode = true;
             var version = work.latestVersion || (work.versions && work.versions[0]);
             masterJson = version ? version.masterJson : null;
             diagnostics = version ? version.diagnostics : null;
@@ -810,6 +827,7 @@
         } catch (apiErr) {
             // Fallback 模拟
             currentWorkId = null;
+            isLiveMode = false;
             await new Promise(function(r) { setTimeout(r, 2000); });
 
             var pName = input.patient.name;
@@ -846,6 +864,15 @@
         loader.style.display = 'none';
         statusBar.classList.remove('hidden');
         genResult.classList.remove('hidden');
+
+        // 显示模式提示
+        var banner = document.getElementById('gen-mode-banner');
+        banner.classList.remove('hidden');
+        if (isLiveMode) {
+            banner.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2 text-sm"><i class="fa-solid fa-circle-check text-green-600"></i><span class="text-green-800 font-medium">真实 API 生成</span><span class="text-green-600">内容由豆包大模型 + 火山引擎生成，图片和视频为真实 AI 产出</span></div>';
+        } else {
+            banner.innerHTML = '<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 text-sm"><i class="fa-solid fa-triangle-exclamation text-amber-600"></i><span class="text-amber-800 font-medium">演示模式</span><span class="text-amber-600">未连接后端 API，显示模拟数据。<a href="Login.html" class="underline font-medium">登录</a>后可使用真实 AI 生成。</span></div>';
+        }
 
         if (masterJson) {
             textArea.innerHTML = renderMasterContent(masterJson);
