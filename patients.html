@@ -167,7 +167,7 @@
                     <h3 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-purple-600 pl-2" data-i18n="lbl_ai_persona">多模态画像评估 (AI Persona)</h3>
                     
                     <!-- 1. 心理与认知 -->
-                    <div class="mb-5">
+                    <div class="mb-5" data-category="心理">
                         <p class="text-xs font-bold text-slate-400 mb-2 uppercase flex items-center gap-2" data-i18n="sec_psych"><i class="fa-solid fa-brain"></i> 心理与认知状态</p>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <label class="check-item"><input type="checkbox" value="高焦虑" class="peer sr-only"><span class="check-label text-red-600 bg-red-50 border-red-100 peer-checked:bg-red-600 peer-checked:text-white" data-i18n="tag_anxiety">高焦虑状态</span></label>
@@ -182,7 +182,7 @@
                     </div>
 
                     <!-- 2. 社会与人口学 -->
-                    <div class="mb-5">
+                    <div class="mb-5" data-category="社会">
                         <p class="text-xs font-bold text-slate-400 mb-2 uppercase flex items-center gap-2" data-i18n="sec_social"><i class="fa-solid fa-user-tag"></i> 社会属性</p>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <label class="check-item"><input type="checkbox" value="小学学历" class="peer sr-only"><span class="check-label text-slate-600 bg-slate-100 peer-checked:bg-slate-600 peer-checked:text-white" data-i18n="tag_low_edu">低文化程度</span></label>
@@ -197,7 +197,7 @@
                     </div>
 
                     <!-- 3. 偏好与习惯 -->
-                    <div>
+                    <div data-category="偏好">
                         <p class="text-xs font-bold text-slate-400 mb-2 uppercase flex items-center gap-2" data-i18n="sec_pref"><i class="fa-solid fa-thumbs-up"></i> 接收偏好</p>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <label class="check-item"><input type="checkbox" value="视觉偏好" class="peer sr-only"><span class="check-label text-purple-600 bg-purple-50 border-purple-100 peer-checked:bg-purple-600 peer-checked:text-white" data-i18n="tag_video">偏好短视频</span></label>
@@ -229,33 +229,46 @@
 
 <script src="js/app/sidebar.js"></script>
 <script>
-    // 1. 数据定义：默认数据 + 本地存储读取
-    const defaultPatients = [
-        { 
-            id: "20250801",             // DB Field: patient_id (患者唯一标识)
-            name: "张建国",              // DB Field: real_name (真实姓名)
-            name_en: "Zhang Jianguo", 
-            diagnosis: "食管鳞癌",       // DB Field: diagnosis_main (主要诊断)
-            diagnosis_en: "Esophageal SCC", 
-            stage: "术后第1周",          // DB Field: treatment_stage (治疗阶段)
-            stage_en: "Post-op Week 1", 
-            // DB Field: persona_tags (AI画像标签) - 存储为 JSON 格式
-            tags: [
-                {text:"高焦虑", color:"bg-red-50 text-red-600"}, 
-                {text:"小学学历", color:"bg-gray-100 text-slate-600"}, 
-                {text:"视觉偏好", color:"bg-purple-50 text-purple-600"}
-            ], 
-            compliance: 85,             // DB Field: compliance_rate (科普依从率)
-            visits: "昨日活跃", 
-            visits_en: "Active Yesterday" 
-        },
-        { id: "20250722", name: "李淑芬", name_en: "Li Shufen", diagnosis: "肺腺癌", diagnosis_en: "Lung Adenocarcinoma", stage: "靶向治疗中", stage_en: "Targeted Therapy", tags: [{text:"情绪稳定", color:"bg-green-50 text-green-600"}, {text:"方言(粤语)", color:"bg-orange-50 text-orange-600"}], compliance: 45, visits: "需提醒复查", visits_en: "Check-up Needed" },
-        { id: "20250910", name: "王强", name_en: "Wang Qiang", diagnosis: "高危人群筛查", diagnosis_en: "High Risk Screen", stage: "等待检查结果", stage_en: "Waiting Results", tags: [{text:"高知群体", color:"bg-blue-50 text-blue-600"}, {text:"关注数据", color:"bg-indigo-50 text-indigo-600"}], compliance: 10, visits: "新注册", visits_en: "New User" },
-        { id: "20250615", name: "赵铁柱", name_en: "Zhao Tiezhu", diagnosis: "胃癌", diagnosis_en: "Gastric Cancer", stage: "化疗期", stage_en: "Chemotherapy", tags: [{text:"高焦虑", color:"bg-red-50 text-red-600"}, {text:"独居老人", color:"bg-slate-100 text-slate-600"}], compliance: 30, visits: "不活跃", visits_en: "Inactive" }
-    ];
-    let patients = JSON.parse(localStorage.getItem('mediark_patients')) || defaultPatients;
+    // 1. 数据定义：从后端 API 加载
+    let patients = [];
     let activeFilters = new Set();
     let currentLang = localStorage.getItem('mediark_lang') || 'zh';
+
+    // 从后端加载患者数据
+    async function loadPatients() {
+        try {
+            var res = await fetch('/api/patients', { credentials: 'include' });
+            if (res.status === 401) { window.location.href = 'Login.html'; return; }
+            if (!res.ok) throw new Error('API error');
+            var data = await res.json();
+            patients = (data.items || []).map(function(p) {
+                // 为标签添加颜色
+                var tags = (p.tags || []).map(function(t) {
+                    var text = typeof t === 'object' ? t.text : t;
+                    var color = "bg-gray-100 text-slate-600";
+                    if (text.includes("焦虑") || text.includes("恐惧")) color = "bg-red-50 text-red-600";
+                    else if (text.includes("视觉") || text.includes("数据") || text.includes("偏好")) color = "bg-purple-50 text-purple-600";
+                    else if (text.includes("方言")) color = "bg-orange-50 text-orange-600";
+                    else if (text.includes("乐观") || text.includes("稳定")) color = "bg-green-50 text-green-600";
+                    else if (text.includes("高知")) color = "bg-blue-50 text-blue-600";
+                    return { text: text, color: color };
+                });
+                return {
+                    id: String(p.id),
+                    name: p.name,
+                    diagnosis: p.diagnosis || '',
+                    stage: p.stage || '',
+                    tags: tags,
+                    compliance: 0,
+                    visits: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('zh-CN') : '新录入'
+                };
+            });
+        } catch (err) {
+            // Fallback: 空列表
+            patients = [];
+        }
+        renderTable();
+    }
 
     // 2. 增强版国际化字典 (包含模态框)
     const i18n = {
@@ -362,7 +375,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         applyLanguage(currentLang);
-        renderTable();
+        loadPatients();
     });
 
     // 3. 语言切换逻辑 (支持 Placeholder)
@@ -426,7 +439,7 @@
                 return `<span class="inline-block px-2 py-0.5 rounded text-xs mr-1 mb-1 border border-transparent ${tColor}">${text}</span>`;
             }).join('');
 
-            const link = `prescription.html?patientId=${p.id}&lang=${currentLang}`;
+            const link = `prescription.html?patientId=${p.id}`;
 
             // 增加删除按钮
             tbody.innerHTML += `
@@ -444,12 +457,11 @@
         });
     }
 
-    // --- 新增：删除功能 ---
-    function deletePatient(id) {
-        const confirmMsg = currentLang === 'zh' ? "确定要删除这位患者的档案吗？此操作无法撤销。" : "Are you sure? This cannot be undone.";
-        if(!confirm(confirmMsg)) return;
-        patients = patients.filter(p => p.id !== id);
-        localStorage.setItem('mediark_patients', JSON.stringify(patients));
+    // --- 删除功能（暂用前端移除，后续可接 DELETE API）---
+    async function deletePatient(id) {
+        var confirmMsg = currentLang === 'zh' ? "确定要删除这位患者的档案吗？" : "Are you sure?";
+        if (!confirm(confirmMsg)) return;
+        patients = patients.filter(function(p) { return p.id !== id; });
         renderTable();
     }
 
@@ -463,44 +475,32 @@
     function openModal() { modal.classList.remove('opacity-0', 'pointer-events-none'); document.body.classList.add('modal-active'); }
     function closeModal() { modal.classList.add('opacity-0', 'pointer-events-none'); document.body.classList.remove('modal-active'); }
     
-    function saveNewPatient() {
-        const name = document.getElementById('input-name').value;
-        if(!name) { alert(currentLang==='zh'?"请输入姓名":"Please enter name"); return; }
-        const diagnosis = document.getElementById('input-diagnosis').value;
-        const stage = document.getElementById('input-stage').value;
-        const tags = [];
-        
-        document.querySelectorAll('#add-modal input[type="checkbox"]:checked').forEach(cb => {
-            let color = "bg-gray-100 text-slate-600";
-            if(cb.value.includes("焦虑") || cb.value.includes("恐惧")) color = "bg-red-50 text-red-600";
-            else if(cb.value.includes("视觉") || cb.value.includes("数据")) color = "bg-purple-50 text-purple-600";
-            else if(cb.value.includes("方言")) color = "bg-orange-50 text-orange-600";
-            else if(cb.value.includes("乐观") || cb.value.includes("配合")) color = "bg-green-50 text-green-600";
-            tags.push({ text: cb.value, color: color }); // 保存中文值
+    async function saveNewPatient() {
+        var name = document.getElementById('input-name').value.trim();
+        if (!name) { alert(currentLang === 'zh' ? "请输入姓名" : "Please enter name"); return; }
+        var diagnosis = document.getElementById('input-diagnosis').value;
+        var stage = document.getElementById('input-stage').value;
+        var tags = [];
+
+        document.querySelectorAll('#add-modal input[type="checkbox"]:checked').forEach(function(cb) {
+            var category = cb.closest('[data-category]')?.dataset.category || '其他';
+            tags.push({ text: cb.value, category: category });
         });
-        
-        if(tags.length === 0) tags.push({text:"新录入", color:"bg-blue-50 text-blue-600"});
-        const newId = "2025" + Math.floor(1000 + Math.random() * 9000);
-        
-        patients.unshift({
-            id: newId, 
-            name: name,               // -> real_name
-            name_en: name, 
-            diagnosis: diagnosis,     // -> diagnosis_main
-            diagnosis_en: diagnosis, 
-            stage: stage,             // -> treatment_stage
-            stage_en: stage,
-            tags: tags,               // -> persona_tags
-            compliance: 0,            // -> compliance_rate (Default: 0)
-            visits: currentLang==='zh'?"新录入":"New Entry", 
-            visits_en: "New Entry"
-        });
-        
-        localStorage.setItem('mediark_patients', JSON.stringify(patients)); // 保存！
-        renderTable();
-        closeModal();
-        document.getElementById('input-name').value = "";
-        document.querySelectorAll('#add-modal input[type="checkbox"]').forEach(c=>c.checked=false);
+
+        try {
+            var res = await fetch('/api/patients', {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, diagnosis: diagnosis, stage: stage, tags: tags })
+            });
+            if (!res.ok) throw new Error('保存失败');
+            await loadPatients();
+            closeModal();
+            document.getElementById('input-name').value = "";
+            document.querySelectorAll('#add-modal input[type="checkbox"]').forEach(function(c) { c.checked = false; });
+        } catch (err) {
+            alert('保存失败：' + err.message);
+        }
     }
 </script>
 </body>
