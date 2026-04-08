@@ -29,8 +29,7 @@ export async function generateWorkBundle({ input, runtime = {} }) {
     patient: normalizedInput.patient,
     formInput: normalizedInput.form,
     runtime: {
-      ...runtime,
-      sleep: runtime.sleep || (async () => {})
+      ...runtime
     }
   });
 

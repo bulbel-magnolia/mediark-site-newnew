@@ -157,6 +157,10 @@ function resolveReferenceImageUrl(videoSpec = {}, imageArtifacts = []) {
     const path = String(artifact?.path || "").trim();
 
     if (path.startsWith("https://") || path.startsWith("http://")) {
+      // Skip signed/temporary CDN URLs that the video provider cannot access
+      if (path.includes("X-Tos-Signature") || path.includes("X-Amz-Signature") || path.includes("Expires=")) {
+        continue;
+      }
       return path;
     }
   }
@@ -165,26 +169,15 @@ function resolveReferenceImageUrl(videoSpec = {}, imageArtifacts = []) {
 }
 
 function buildVideoPrompt(videoSpec = {}, provider = {}) {
-  const lines = [];
+  // Use only the first shot's motion_prompt to keep the prompt concise
+  const shots = videoSpec.shots || [];
+  const firstPrompt = shots.find((s) => s?.motion_prompt)?.motion_prompt;
 
-  for (const shot of videoSpec.shots || []) {
-    if (shot?.motion_prompt) {
-      lines.push(String(shot.motion_prompt).trim());
-    }
-
-    if (shot?.caption) {
-      lines.push(`Caption cue: ${String(shot.caption).trim()}.`);
-    }
+  if (firstPrompt) {
+    return String(firstPrompt).trim();
   }
 
-  if (!lines.length) {
-    lines.push("A calm clinical education video for patient recovery guidance.");
-  }
-
-  const resolution = String(videoSpec.resolution || provider.defaultResolution || "720p").trim();
-  const durationSec = resolveVideoDurationSec(videoSpec, provider);
-
-  return `${lines.join(" ")} --resolution ${resolution} --duration ${durationSec}`;
+  return "A calm clinical education video for patient recovery guidance, warm hospital setting, gentle camera motion.";
 }
 
 function resolveVideoResult(payload = {}) {
@@ -253,8 +246,10 @@ export async function requestVideoGeneration({
   videoSpec = {},
   imageArtifacts = [],
   fetchImpl,
-  sleep = async () => {}
+  sleep
 }) {
+  // Always use real setTimeout for polling — callers may pass a no-op sleep for tests
+  const pollSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const taskResponse = await fetchImpl(buildUrl(provider.baseUrl, "/contents/generations/tasks"), {
     method: "POST",
     headers: {
@@ -320,8 +315,8 @@ export async function requestVideoGeneration({
     };
   }
 
-  const maxPollAttempts = Number(provider.maxPollAttempts) > 0 ? Number(provider.maxPollAttempts) : 20;
-  const pollIntervalMs = Number(provider.pollIntervalMs) > 0 ? Number(provider.pollIntervalMs) : 2500;
+  const maxPollAttempts = Number(provider.maxPollAttempts) > 0 ? Number(provider.maxPollAttempts) : 60;
+  const pollIntervalMs = Number(provider.pollIntervalMs) > 0 ? Number(provider.pollIntervalMs) : 5000;
 
   for (let attempt = 0; attempt < maxPollAttempts; attempt += 1) {
     const statusResponse = await fetchImpl(buildUrl(provider.baseUrl, `/contents/generations/tasks/${taskId}`), {
@@ -380,7 +375,7 @@ export async function requestVideoGeneration({
     }
 
     if (attempt < maxPollAttempts - 1) {
-      await sleep(pollIntervalMs);
+      await pollSleep(pollIntervalMs);
     }
   }
 
