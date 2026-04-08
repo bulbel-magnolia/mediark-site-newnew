@@ -244,20 +244,27 @@ async function buildImageArtifacts({ masterJson, config, fetchImpl }) {
   return images;
 }
 
-async function buildArtifacts({ masterJson, config, fetchImpl, mode, sleep }) {
+async function buildArtifacts({ masterJson, config, fetchImpl, mode, sleep, skipVideoPolling = false }) {
   if (mode === "mock") {
     return buildMockArtifacts();
   }
 
   const images = await buildImageArtifacts({ masterJson, config, fetchImpl });
-  const videos = await buildVideoArtifacts({
-    masterJson,
-    imageArtifacts: images,
-    config,
-    fetchImpl,
-    mode,
-    sleep
-  });
+
+  let videos;
+  if (skipVideoPolling) {
+    // Only create video task, don't poll — return immediately with taskId
+    videos = await buildVideoTaskOnly({ masterJson, imageArtifacts: images, config, fetchImpl });
+  } else {
+    videos = await buildVideoArtifacts({
+      masterJson,
+      imageArtifacts: images,
+      config,
+      fetchImpl,
+      mode,
+      sleep
+    });
+  }
 
   return {
     images,
@@ -271,7 +278,48 @@ async function buildArtifacts({ masterJson, config, fetchImpl, mode, sleep }) {
   };
 }
 
-export async function generatePrescriptionBundle({ patient, formInput, runtime = {} }) {
+async function buildVideoTaskOnly({ masterJson, imageArtifacts, config, fetchImpl }) {
+  const provider = config.providers.video_main;
+
+  if (!hasRuntimeCredentials(config, "video_main") || !fetchImpl) {
+    return [{ id: "short_video", provider: provider.provider, model: provider.model, status: "queued", path: "", thumbnail: "" }];
+  }
+
+  try {
+    const { buildUrl: _bu, buildVideoPrompt: _bvp } = await import("./provider-clients.js").then(() => ({})).catch(() => ({}));
+
+    const videoSpec = masterJson.spec.video_spec || {};
+    const shots = videoSpec.shots || [];
+    const firstPrompt = shots.find((s) => s?.motion_prompt)?.motion_prompt || "A calm clinical education video for patient recovery guidance.";
+
+    const taskResponse = await fetchImpl(`${provider.baseUrl.replace(/\/+$/, "")}/contents/generations/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
+      body: JSON.stringify({ model: provider.model, content: [{ type: "text", text: firstPrompt }] })
+    });
+
+    if (!taskResponse.ok) {
+      return [{ id: "short_video", provider: provider.provider, model: provider.model, status: "generation-failed", path: "", thumbnail: "" }];
+    }
+
+    const taskPayload = await taskResponse.json();
+    const taskId = String(taskPayload.id || taskPayload.task_id || "").trim();
+
+    return [{
+      id: "short_video",
+      provider: provider.provider,
+      model: provider.model,
+      status: taskId ? "processing" : "generation-failed",
+      taskId: taskId,
+      path: "",
+      thumbnail: ""
+    }];
+  } catch {
+    return [{ id: "short_video", provider: provider.provider, model: provider.model, status: "generation-failed", path: "", thumbnail: "" }];
+  }
+}
+
+export async function generatePrescriptionBundle({ patient, formInput, runtime = {}, skipVideoPolling = false }) {
   const { config, fetchImpl, sleep } = resolveRuntime(runtime);
   const mode = resolveMode(config);
   const evidence = buildEvidenceBundle(formInput.focusTopics);
@@ -301,7 +349,8 @@ export async function generatePrescriptionBundle({ patient, formInput, runtime =
     config,
     fetchImpl,
     mode,
-    sleep
+    sleep,
+    skipVideoPolling
   });
 
   masterJson.artifacts = artifacts;

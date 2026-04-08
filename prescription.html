@@ -732,10 +732,17 @@
         // 视频
         var videos = (artifacts.videos || []).concat(dbAssets.filter(function(a) { return a.assetType === 'video'; }));
         var videoEl = document.getElementById('video-preview');
-        if (videos.length && videos[0].path) {
-            videoEl.innerHTML = '<video controls class="w-full rounded-lg" src="' + videos[0].path + '"></video>';
+        var vid = videos.length ? videos[0] : null;
+        if (vid && vid.path) {
+            videoEl.innerHTML = '<video controls class="w-full rounded-lg" src="' + vid.path + '"></video>';
+        } else if (vid && vid.status === 'processing' && vid.taskId) {
+            videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-slate-300">'
+                + '<i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>'
+                + '<span class="text-xs">视频生成中 (约1-2分钟)</span>'
+                + '<button onclick="pollVideoStatus(\'' + vid.taskId + '\')" class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">刷新状态</button>'
+                + '</div>';
         } else {
-            var vStatus = videos.length ? (videos[0].status || 'queued') : 'N/A';
+            var vStatus = vid ? (vid.status || 'queued') : 'N/A';
             videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-slate-400"><i class="fa-solid fa-film text-2xl mb-2"></i><span class="text-xs">' + vStatus + '</span></div>';
         }
 
@@ -759,7 +766,7 @@
     // === 渲染生成状态 ===
     function renderStatus(masterJson, diagnostics) {
         var status = masterJson.status || {};
-        var labels = { 'ready': '已完成', 'mock-ready': '模拟完成', 'generated': '已生成', 'queued': '排队中', 'needs-config': '需配置', 'fallback': '降级', 'browser-ready': '就绪' };
+        var labels = { 'ready': '已完成', 'generated': '已生成', 'processing': '生成中...', 'queued': '排队中', 'needs-config': '需配置', 'fallback': '降级', 'browser-ready': '就绪' };
         function label(s) { return labels[s] || s || '--'; }
 
         document.getElementById('status-text').textContent = label(status.text_master || (diagnostics && diagnostics.text_master && diagnostics.text_master.status));
@@ -855,6 +862,33 @@
         btnApprove.disabled = false;
         btnApprove.classList.remove('opacity-50', 'cursor-not-allowed');
     }
+
+    // === 轮询视频生成状态 ===
+    window.pollVideoStatus = async function(taskId) {
+        var videoEl = document.getElementById('video-preview');
+        videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-slate-300"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><span class="text-xs">正在查询...</span></div>';
+
+        try {
+            var res = await fetch('/api/works/video-status/' + taskId, { credentials: 'include' });
+            if (!res.ok) throw new Error('查询失败');
+            var data = await res.json();
+
+            if (data.status === 'succeeded' && data.videoUrl) {
+                videoEl.innerHTML = '<video controls class="w-full rounded-lg" src="' + data.videoUrl + '"></video>';
+                document.getElementById('status-video').textContent = '已完成';
+            } else if (data.status === 'running' || data.status === 'processing') {
+                videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-slate-300">'
+                    + '<i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>'
+                    + '<span class="text-xs">仍在生成中...</span>'
+                    + '<button onclick="pollVideoStatus(\'' + taskId + '\')" class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">再次刷新</button>'
+                    + '</div>';
+            } else {
+                videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-red-400"><i class="fa-solid fa-circle-xmark text-2xl mb-2"></i><span class="text-xs">生成失败: ' + (data.status || 'unknown') + '</span></div>';
+            }
+        } catch (err) {
+            videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-red-400"><i class="fa-solid fa-circle-xmark text-2xl mb-2"></i><span class="text-xs">' + err.message + '</span></div>';
+        }
+    };
 
     function regenerateContent() { runGeneration(true); }
 </script>

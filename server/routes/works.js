@@ -142,5 +142,34 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
     });
   });
 
+  // Poll video task status from provider (proxied to avoid CORS)
+  router.get("/video-status/:taskId", async (req, res) => {
+    try {
+      const { MEDIARK_CONFIG } = await import("../../js/config/api-config.js");
+      const provider = MEDIARK_CONFIG.providers.video_main;
+
+      if (!provider?.baseUrl || !provider?.apiKey) {
+        return res.status(400).json({ error: "Video provider not configured." });
+      }
+
+      const taskId = String(req.params.taskId).trim();
+      const pollRes = await fetch(`${provider.baseUrl.replace(/\/+$/, "")}/contents/generations/tasks/${taskId}`, {
+        headers: { Authorization: `Bearer ${provider.apiKey}` }
+      });
+
+      if (!pollRes.ok) {
+        return res.status(pollRes.status).json({ error: "Provider returned error.", status: "failed" });
+      }
+
+      const data = await pollRes.json();
+      const status = String(data.status || data.state || "").toLowerCase();
+      const videoUrl = data.content?.video_url || "";
+
+      return res.json({ status, videoUrl, taskId });
+    } catch (err) {
+      return res.status(500).json({ error: err.message, status: "error" });
+    }
+  });
+
   return router;
 }

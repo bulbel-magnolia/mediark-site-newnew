@@ -30,7 +30,8 @@ export async function generateWorkBundle({ input, runtime = {} }) {
     formInput: normalizedInput.form,
     runtime: {
       ...runtime
-    }
+    },
+    skipVideoPolling: true
   });
 
   return {
