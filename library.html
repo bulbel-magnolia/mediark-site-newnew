@@ -173,22 +173,33 @@
         // --- 渲染函数 ---
         function renderWorks(workList) {
             resultsGrid.innerHTML = '';
+            if (!workList.length) {
+                resultsGrid.innerHTML = '<p class="col-span-3 text-center text-slate-500 py-12">暂无已发布的科普作品</p>';
+                return;
+            }
             workList.forEach(work => {
+                // 兼容静态 works.json 和 API 格式
+                const coverImg = work.coverImage || work.image || '';
+                const summary = work.summary || '';
                 let tagsHTML = '';
-                const dimensions = ['topic', 'format', 'audience', 'purpose'];
+                const dimensions = ['topic', 'format', 'audience'];
                 dimensions.forEach(dimension => {
                     if (work[dimension]) {
                         const colorClass = tagColors[dimension] || 'bg-gray-200 text-gray-800';
-                        const tagsArray = work[dimension].split(',').map(tag => tag.trim());
+                        const tagsArray = String(work[dimension]).split(',').map(tag => tag.trim());
                         tagsHTML += tagsArray.map(tag => `<span class="px-2 py-1 ${colorClass} text-xs font-semibold rounded-full">${tag}</span>`).join(' ');
                     }
                 });
                 resultsGrid.innerHTML += `
                     <div data-id="${work.id}" class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-shadow duration-300 cursor-pointer">
-                        <img class="w-full h-48 object-cover pointer-events-none" src="${work.image}" alt="${work.title}">
+                        ${coverImg
+                            ? `<img class="w-full h-48 object-cover pointer-events-none" src="${coverImg}" alt="${work.title}">`
+                            : `<div class="w-full h-48 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-file-medical text-4xl text-blue-200"></i></div>`
+                        }
                         <div class="p-6 pointer-events-none">
                             <div class="flex flex-wrap gap-2 mb-3">${tagsHTML}</div>
                             <h3 class="text-xl font-bold text-gray-800 mb-2">${work.title}</h3>
+                            ${summary ? `<p class="text-sm text-gray-600 mb-2 line-clamp-2">${summary}</p>` : ''}
                             <p class="font-semibold text-blue-600">查看详情 &rarr;</p>
                         </div>
                     </div>
@@ -225,14 +236,37 @@
                 }
             });
             modalTags.innerHTML = tagsHTML;
+
+            // 兼容静态 JSON 和 API 格式
             let contentHTML = '';
-            if (work.type === 'video') {
-                contentHTML = `<video class="w-full rounded-lg" controls autoplay><source src="${work.contentUrl}" type="video/mp4">您的浏览器不支持播放视频。</video>`;
-            } else if (work.type === 'pdf') {
-                contentHTML = `<div class="text-center p-8 bg-gray-100 rounded-lg"><p class="text-lg text-gray-700 mb-4">这是一个PDF漫画/文档作品。</p><a href="${work.contentUrl}" target="_blank" class="inline-block bg-blue-600 text-white font-bold px-8 py-3 rounded-full hover:bg-blue-700 transition-colors">在新标签页中打开PDF</a></div>`;
-            } else if (work.type === 'image') {
-                contentHTML = `<img src="${work.contentUrl}" alt="${work.title}" class="w-full h-auto rounded-lg max-h-[60vh] object-contain">`;
+
+            // API 格式：展示 summary + assets
+            if (work.summary) {
+                contentHTML += `<p class="text-gray-700 mb-4">${work.summary}</p>`;
             }
+            if (work.assets && work.assets.length) {
+                work.assets.forEach(asset => {
+                    if (asset.assetType === 'image' && asset.url) {
+                        contentHTML += `<img src="${asset.url}" alt="${asset.assetKey}" class="w-full rounded-lg mb-4 max-h-[50vh] object-contain">`;
+                    } else if (asset.assetType === 'video' && asset.url) {
+                        contentHTML += `<video class="w-full rounded-lg mb-4" controls><source src="${asset.url}" type="video/mp4"></video>`;
+                    }
+                });
+            }
+
+            // 静态 JSON 格式 fallback
+            if (!contentHTML && work.type === 'video' && work.contentUrl) {
+                contentHTML = `<video class="w-full rounded-lg" controls><source src="${work.contentUrl}" type="video/mp4"></video>`;
+            } else if (!contentHTML && work.type === 'image' && work.contentUrl) {
+                contentHTML = `<img src="${work.contentUrl}" alt="${work.title}" class="w-full rounded-lg max-h-[60vh] object-contain">`;
+            } else if (!contentHTML && work.type === 'pdf' && work.contentUrl) {
+                contentHTML = `<a href="${work.contentUrl}" target="_blank" class="inline-block bg-blue-600 text-white font-bold px-8 py-3 rounded-full">打开PDF</a>`;
+            }
+
+            if (!contentHTML) {
+                contentHTML = '<p class="text-gray-500 text-center py-8">暂无预览内容</p>';
+            }
+
             modalBody.innerHTML = contentHTML;
             modalContainer.classList.remove('hidden');
         }
