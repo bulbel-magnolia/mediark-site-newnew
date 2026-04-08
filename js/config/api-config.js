@@ -109,12 +109,14 @@ function loadEnvConfig() {
           text_master: {
             baseUrl: env.MEDIARK_TEXT_BASE_URL || "",
             apiKey: env.MEDIARK_TEXT_API_KEY || "",
-            model: env.MEDIARK_TEXT_MODEL || "gpt-4o"
+            model: env.MEDIARK_TEXT_MODEL || "gpt-4o",
+            apiStyle: env.MEDIARK_TEXT_API_STYLE || ""
           },
           text_reviewer: {
             baseUrl: env.MEDIARK_TEXT_BASE_URL || "",
             apiKey: env.MEDIARK_TEXT_API_KEY || "",
-            model: env.MEDIARK_TEXT_MODEL || "gpt-4o"
+            model: env.MEDIARK_TEXT_MODEL || "gpt-4o",
+            apiStyle: env.MEDIARK_TEXT_API_STYLE || ""
           }
         } : {}),
         ...(env.MEDIARK_IMAGE_API_KEY ? {

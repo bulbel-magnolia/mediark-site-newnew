@@ -28,16 +28,29 @@ function extractResponseText(payload = {}) {
     return payload.output_text;
   }
 
+  // Standard OpenAI /chat/completions format
   const messageContent = payload?.choices?.[0]?.message?.content;
-
   if (messageContent) {
     return normalizeChatContent(messageContent);
   }
 
-  const responseContent = payload?.output?.[0]?.content;
-
-  if (responseContent) {
-    return normalizeChatContent(responseContent);
+  // Doubao /responses format: output is array of {type, content/summary}
+  const outputArray = payload?.output;
+  if (Array.isArray(outputArray)) {
+    // Find the "message" type output (skip "reasoning")
+    const messageOutput = outputArray.find((item) => item?.type === "message");
+    if (messageOutput?.content) {
+      const contentArray = Array.isArray(messageOutput.content) ? messageOutput.content : [];
+      const textItem = contentArray.find((item) => item?.type === "output_text");
+      if (textItem?.text) {
+        return String(textItem.text).trim();
+      }
+    }
+    // Fallback: try first output's content
+    const firstContent = outputArray[0]?.content;
+    if (firstContent) {
+      return normalizeChatContent(firstContent);
+    }
   }
 
   return "";
@@ -60,27 +73,42 @@ async function readErrorPayload(response) {
 }
 
 export async function requestTextRefinement({ provider, prompt, fetchImpl }) {
-  const response = await fetchImpl(buildUrl(provider.baseUrl, "/chat/completions"), {
+  const useResponsesApi = provider.apiStyle === "doubao-responses"
+    || provider.model?.startsWith("doubao-seed");
+
+  let endpoint, body;
+
+  if (useResponsesApi) {
+    // Doubao /responses API format
+    endpoint = "/responses";
+    body = {
+      model: provider.model,
+      input: [
+        { role: "system", content: "Return one JSON object only. No markdown, no explanation." },
+        { role: "user", content: [{ type: "input_text", text: prompt }] }
+      ]
+    };
+  } else {
+    // Standard OpenAI /chat/completions format
+    endpoint = "/chat/completions";
+    body = {
+      model: provider.model,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: "Return one JSON object only." },
+        { role: "user", content: prompt }
+      ]
+    };
+  }
+
+  const response = await fetchImpl(buildUrl(provider.baseUrl, endpoint), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${provider.apiKey}`
     },
-    body: JSON.stringify({
-      model: provider.model,
-      temperature: 0.3,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Return one JSON object only."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
