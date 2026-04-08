@@ -407,7 +407,11 @@ export function listWorks(db, user, filters = {}) {
     params.status = filters.status;
   }
 
-  if (user?.role === "doctor") {
+  if (filters.role === "reviewer" && user?.id) {
+    // Reviewer mode: show works assigned to this user for review
+    conditions.push("works.assigned_reviewer_id = :reviewerId");
+    params.reviewerId = user.id;
+  } else if (user?.role === "doctor") {
     conditions.push("works.created_by = :createdBy");
     params.createdBy = user.id;
   }

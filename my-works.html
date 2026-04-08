@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的作品 - MediArk 工作台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+        .status-pill { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+        .status-generated { background: #dbeafe; color: #1d4ed8; }
+        .status-pending_review { background: #fef3c7; color: #92400e; }
+        .status-approved { background: #d1fae5; color: #065f46; }
+        .status-published { background: #e0e7ff; color: #3730a3; }
+        .status-archived { background: #f3f4f6; color: #6b7280; }
+        .status-changes_requested { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden">
+
+    <!-- 侧边栏 -->
+    <aside class="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-800">
+            <img src="网页展示素材库/logo/logo.png" class="h-8 w-auto bg-white rounded-full p-1" alt="Logo">
+            <span class="font-bold text-lg tracking-wide">MediArk</span>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                <i class="fa-solid fa-chart-pie w-5"></i><span>工作台</span>
+            </a>
+            <a href="prescription.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                <i class="fa-solid fa-wand-magic-sparkles w-5"></i><span>生成科普作品</span>
+            </a>
+            <a href="my-works.html" class="flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-900/50 transition">
+                <i class="fa-solid fa-folder-open w-5"></i><span>我的作品</span>
+            </a>
+            <a href="patients.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                <i class="fa-solid fa-user-group w-5"></i><span>患者管理</span>
+            </a>
+            <a href="knowledge.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
+                <i class="fa-solid fa-book-medical w-5"></i><span>知识库</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3">
+                <div id="sidebar-user-avatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold text-sm">?</div>
+                <div class="flex-1 min-w-0">
+                    <p id="sidebar-user-name" class="text-sm font-medium truncate">加载中...</p>
+                    <p id="sidebar-user-role" class="text-xs text-slate-400">临床医生</p>
+                </div>
+            </div>
+            <button onclick="sidebarLogout()" class="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
+                <i class="fa-solid fa-right-from-bracket"></i> 退出登录
+            </button>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 flex flex-col h-screen">
+        <header class="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-20">
+            <h1 class="text-xl font-semibold text-slate-800">我的作品</h1>
+            <a href="prescription.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> 新建作品
+            </a>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-8">
+            <!-- Tab 切换：我创建的 / 待我审核 -->
+            <div class="flex gap-2 mb-6">
+                <button id="tab-mine" onclick="switchTab('mine')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition">我创建的</button>
+                <button id="tab-review" onclick="switchTab('review')" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">待我审核</button>
+                <!-- 状态筛选 -->
+                <select id="status-filter" onchange="loadWorks()" class="ml-auto px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                    <option value="">全部状态</option>
+                    <option value="generated">待审核</option>
+                    <option value="pending_review">专家审核中</option>
+                    <option value="approved">已通过</option>
+                    <option value="published">已发布</option>
+                    <option value="archived">已归档</option>
+                </select>
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loading" class="text-center py-12 text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>加载中...</p>
+            </div>
+
+            <!-- 空状态 -->
+            <div id="empty-state" class="hidden text-center py-16">
+                <i class="fa-solid fa-folder-open text-5xl text-slate-300 mb-4"></i>
+                <p class="text-slate-500 text-lg">暂无作品</p>
+                <a href="prescription.html" class="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg text-sm hover:bg-blue-700 transition">生成第一个作品</a>
+            </div>
+
+            <!-- 作品卡片网格 -->
+            <div id="works-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+        </div>
+    </main>
+
+    <!-- 详情 Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-start justify-center overflow-y-auto py-8 px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative">
+            <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                <h2 id="modal-title" class="text-xl font-bold text-slate-800"></h2>
+                <button onclick="closeDetail()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="modal-body" class="p-6 max-h-[70vh] overflow-y-auto"></div>
+            <div id="modal-actions" class="p-6 border-t border-slate-200 flex gap-3 justify-end"></div>
+        </div>
+    </div>
+
+<script src="js/app/sidebar.js"></script>
+<script>
+    var currentTab = 'mine';
+    var allWorks = [];
+
+    var statusLabels = {
+        generated: '待审核', pending_review: '专家审核中', approved: '已通过',
+        published: '已发布', archived: '已归档', changes_requested: '需修改'
+    };
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('tab-mine').className = tab === 'mine'
+            ? 'px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition'
+            : 'px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition';
+        document.getElementById('tab-review').className = tab === 'review'
+            ? 'px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition'
+            : 'px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition';
+        loadWorks();
+    }
+
+    async function loadWorks() {
+        var loading = document.getElementById('loading');
+        var grid = document.getElementById('works-grid');
+        var empty = document.getElementById('empty-state');
+        loading.classList.remove('hidden');
+        grid.innerHTML = '';
+        empty.classList.add('hidden');
+
+        var statusFilter = document.getElementById('status-filter').value;
+        var url = '/api/works';
+        var params = [];
+        if (statusFilter) params.push('status=' + statusFilter);
+        if (currentTab === 'review') params.push('role=reviewer');
+        if (params.length) url += '?' + params.join('&');
+
+        try {
+            var res = await fetch(url, { credentials: 'include' });
+            if (res.status === 401) { window.location.href = 'Login.html'; return; }
+            if (!res.ok) throw new Error('加载失败');
+            var data = await res.json();
+            allWorks = data.items || [];
+        } catch (err) {
+            allWorks = [];
+        }
+
+        loading.classList.add('hidden');
+
+        if (!allWorks.length) {
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        allWorks.forEach(function(work) {
+            var coverImg = '';
+            var version = work.latestVersion;
+            if (version && version.assets) {
+                var imgAsset = version.assets.find(function(a) { return a.assetType === 'image' && a.url; });
+                if (imgAsset) coverImg = imgAsset.url;
+            }
+            if (!coverImg && version && version.posterPayload && version.posterPayload.heroImage) {
+                coverImg = version.posterPayload.heroImage;
+            }
+
+            var statusClass = 'status-' + (work.status || 'generated');
+            var statusText = statusLabels[work.status] || work.status;
+            var timeStr = work.updatedAt ? new Date(work.updatedAt).toLocaleDateString('zh-CN') : '';
+
+            var actionsHtml = buildCardActions(work);
+
+            grid.innerHTML += '<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition cursor-pointer" onclick="openDetail(' + work.id + ')">'
+                + (coverImg
+                    ? '<div class="h-40 overflow-hidden"><img src="' + coverImg + '" class="w-full h-full object-cover"></div>'
+                    : '<div class="h-40 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center"><i class="fa-solid fa-file-medical text-4xl text-blue-200"></i></div>')
+                + '<div class="p-4">'
+                + '<div class="flex items-center justify-between mb-2">'
+                + '<span class="status-pill ' + statusClass + '">' + statusText + '</span>'
+                + '<span class="text-xs text-slate-400">' + timeStr + '</span>'
+                + '</div>'
+                + '<h3 class="font-bold text-slate-800 text-sm mb-1 truncate">' + (work.title || '未命名') + '</h3>'
+                + '<p class="text-xs text-slate-500 truncate">' + (work.topic || '') + '</p>'
+                + '<div class="mt-3 flex gap-2" onclick="event.stopPropagation()">' + actionsHtml + '</div>'
+                + '</div></div>';
+        });
+    }
+
+    function buildCardActions(work) {
+        var html = '';
+        var s = work.status;
+        if (s === 'generated') {
+            html += '<button onclick="submitReview(' + work.id + ')" class="flex-1 px-2 py-1.5 bg-amber-50 text-amber-700 rounded text-xs font-medium hover:bg-amber-100 transition">提交专家审核</button>';
+            html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">直接发布</button>';
+        } else if (s === 'pending_review' && currentTab === 'review') {
+            html += '<button onclick="doAction(' + work.id + ',\'approve\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">审核通过</button>';
+            html += '<button onclick="doAction(' + work.id + ',\'changes_requested\')" class="flex-1 px-2 py-1.5 bg-red-50 text-red-700 rounded text-xs font-medium hover:bg-red-100 transition">退回修改</button>';
+        } else if (s === 'approved') {
+            html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">发布到作品库</button>';
+        } else if (s === 'published') {
+            html += '<a href="library.html" class="flex-1 px-2 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition text-center">查看作品库</a>';
+        } else if (s === 'changes_requested') {
+            html += '<button onclick="openDetail(' + work.id + ')" class="flex-1 px-2 py-1.5 bg-amber-50 text-amber-700 rounded text-xs font-medium hover:bg-amber-100 transition">查看意见</button>';
+        }
+        if (s !== 'archived' && s !== 'published') {
+            html += '<button onclick="doAction(' + work.id + ',\'archive\')" class="px-2 py-1.5 text-slate-400 rounded text-xs hover:bg-slate-100 transition"><i class="fa-solid fa-box-archive"></i></button>';
+        }
+        return html;
+    }
+
+    async function doAction(workId, action) {
+        var endpoint = '/api/works/' + workId + '/';
+        var body = {};
+        if (action === 'approve' || action === 'changes_requested') {
+            if (action === 'changes_requested') {
+                var note = prompt('请输入修改意见：');
+                if (note === null) return;
+                body.note = note;
+            }
+            endpoint += 'review';
+            body.action = action;
+        } else if (action === 'publish') {
+            endpoint += 'publish';
+        } else if (action === 'archive') {
+            endpoint += 'archive';
+        }
+
+        try {
+            var res = await fetch(endpoint, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                var err = await res.json().catch(function() { return {}; });
+                throw new Error(err.error || '操作失败');
+            }
+            loadWorks();
+            closeDetail();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    async function submitReview(workId) {
+        try {
+            var res = await fetch('/api/works/' + workId + '/submit-review', {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            if (!res.ok) {
+                var err = await res.json().catch(function() { return {}; });
+                throw new Error(err.error || '提交失败');
+            }
+            loadWorks();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    async function openDetail(workId) {
+        try {
+            var res = await fetch('/api/works/' + workId, { credentials: 'include' });
+            if (!res.ok) throw new Error('加载失败');
+            var data = await res.json();
+            var work = data.work;
+
+            document.getElementById('modal-title').textContent = work.title || '作品详情';
+
+            var version = work.latestVersion;
+            var masterJson = version ? version.masterJson : null;
+            var spec = masterJson ? (masterJson.spec || masterJson) : {};
+            var clinical = spec.clinical_core || {};
+            var copy = spec.copy_master || {};
+            var assets = version ? (version.assets || []) : [];
+            var reviews = work.reviewActions || [];
+
+            var html = '';
+
+            // 状态 + 基本信息
+            html += '<div class="flex items-center gap-3 mb-4">';
+            html += '<span class="status-pill status-' + work.status + '">' + (statusLabels[work.status] || work.status) + '</span>';
+            html += '<span class="text-sm text-slate-500">' + (work.topic || '') + ' | ' + (work.format || '') + '</span>';
+            html += '</div>';
+
+            // 一句话摘要
+            if (copy.one_sentence_takeaway) {
+                html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded mb-4"><p class="text-blue-800 font-semibold text-sm">' + copy.one_sentence_takeaway + '</p></div>';
+            }
+
+            // 临床内容
+            if (clinical.clinical_summary) {
+                html += '<h4 class="font-bold text-slate-800 mt-3 mb-1 text-sm"><i class="fa-solid fa-stethoscope text-blue-500 mr-1"></i> 临床摘要</h4>';
+                html += '<p class="text-sm text-slate-600 mb-3">' + clinical.clinical_summary + '</p>';
+            }
+            ['must_know', 'must_do', 'must_avoid', 'red_flags'].forEach(function(key) {
+                if (clinical[key] && clinical[key].length) {
+                    var labels = { must_know: '必须知道', must_do: '必须做', must_avoid: '必须避免', red_flags: '危险信号' };
+                    var icons = { must_know: 'fa-lightbulb text-green-500', must_do: 'fa-circle-check text-blue-500', must_avoid: 'fa-ban text-red-500', red_flags: 'fa-triangle-exclamation text-orange-500' };
+                    html += '<h4 class="font-bold text-sm mt-2 mb-1"><i class="fa-solid ' + icons[key] + ' mr-1"></i> ' + labels[key] + '</h4>';
+                    html += '<ul class="list-disc pl-5 mb-2 text-sm text-slate-600">';
+                    clinical[key].forEach(function(item) { html += '<li>' + item + '</li>'; });
+                    html += '</ul>';
+                }
+            });
+
+            // 资产预览
+            var images = assets.filter(function(a) { return a.assetType === 'image' && a.url; });
+            var videos = assets.filter(function(a) { return a.assetType === 'video' && a.url; });
+
+            if (images.length) {
+                html += '<h4 class="font-bold text-sm mt-4 mb-2"><i class="fa-solid fa-images text-purple-500 mr-1"></i> 生成图片</h4>';
+                html += '<div class="grid grid-cols-2 gap-2 mb-3">';
+                images.forEach(function(img) { html += '<img src="' + img.url + '" class="rounded-lg w-full h-32 object-cover">'; });
+                html += '</div>';
+            }
+
+            if (videos.length) {
+                html += '<h4 class="font-bold text-sm mt-4 mb-2"><i class="fa-solid fa-film text-orange-500 mr-1"></i> 生成视频</h4>';
+                videos.forEach(function(vid) { html += '<video controls class="w-full rounded-lg mb-2" src="' + vid.url + '"></video>'; });
+            }
+
+            // 审核时间线
+            if (reviews.length) {
+                html += '<h4 class="font-bold text-sm mt-4 mb-2"><i class="fa-solid fa-clock-rotate-left text-slate-500 mr-1"></i> 审核记录</h4>';
+                html += '<div class="space-y-2">';
+                reviews.forEach(function(r) {
+                    html += '<div class="bg-slate-50 rounded-lg p-3 text-sm">';
+                    html += '<div class="flex justify-between"><span class="font-medium">' + (r.reviewerName || 'System') + '</span><span class="text-xs text-slate-400">' + new Date(r.createdAt).toLocaleString('zh-CN') + '</span></div>';
+                    html += '<span class="status-pill status-' + r.action + ' mt-1">' + (statusLabels[r.action] || r.action) + '</span>';
+                    if (r.note) html += '<p class="text-slate-600 mt-1">' + r.note + '</p>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+
+            document.getElementById('modal-body').innerHTML = html;
+
+            // 操作按钮
+            var actHtml = buildCardActions(work);
+            actHtml += '<button onclick="closeDetail()" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm transition">关闭</button>';
+            document.getElementById('modal-actions').innerHTML = actHtml;
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    function closeDetail() {
+        document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    // 点击遮罩关闭
+    document.getElementById('detail-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeDetail();
+    });
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        loadWorks();
+    });
+</script>
+</body>
+</html>

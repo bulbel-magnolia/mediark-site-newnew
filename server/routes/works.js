@@ -1,5 +1,6 @@
 import express from "express";
 
+import { run } from "../db.js";
 import { generateWorkBundle } from "../lib/generate-work.js";
 import {
   appendGeneratedWorkVersion,
@@ -36,13 +37,57 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
   router.get("/", (req, res) => {
     res.json({
       items: listWorks(db, req.auth.user, {
-        status: req.query.status ? String(req.query.status) : ""
+        status: req.query.status ? String(req.query.status) : "",
+        role: req.query.role ? String(req.query.role) : ""
       })
     });
   });
 
-  router.get("/:id", (req, res) => {
+  // Submit work for expert review — assigns first available reviewer
+  router.post("/:id/submit-review", (req, res) => {
     const work = requireOwnedWork(req, res);
+    if (!work) return;
+
+    // Find a reviewer (any doctor user that is not the creator)
+    const reviewer = db.prepare(
+      `SELECT id, display_name FROM users WHERE role = 'doctor' AND id != :creatorId AND is_active = 1 LIMIT 1`
+    ).get({ creatorId: req.auth.user.id });
+
+    if (!reviewer) {
+      return res.status(400).json({ error: "No available reviewer found." });
+    }
+
+    run(db,
+      `UPDATE works SET status = 'pending_review', assigned_reviewer_id = :reviewerId, updated_at = :now WHERE id = :id`,
+      { reviewerId: reviewer.id, now: new Date().toISOString(), id: work.id }
+    );
+
+    // Record review action
+    const latestVersion = db.prepare(
+      `SELECT id FROM work_versions WHERE work_id = :workId ORDER BY version DESC LIMIT 1`
+    ).get({ workId: work.id });
+
+    run(db,
+      `INSERT INTO review_actions (work_id, work_version_id, reviewer_id, action, note)
+       VALUES (:workId, :versionId, :reviewerId, 'submitted_for_review', :note)`,
+      {
+        workId: work.id,
+        versionId: latestVersion?.id || null,
+        reviewerId: req.auth.user.id,
+        note: `提交给 ${reviewer.display_name} 审核`
+      }
+    );
+
+    return res.json({ ok: true, reviewer: { id: reviewer.id, displayName: reviewer.display_name } });
+  });
+
+  router.get("/:id", (req, res) => {
+    // Allow both owner and assigned reviewer to view
+    const work = getWorkById(db, Number(req.params.id));
+    if (!work) return res.status(404).json({ error: "Work not found." });
+    const isOwner = work.createdBy?.id === req.auth.user.id;
+    const isReviewer = work.assignedReviewer?.id === req.auth.user.id;
+    if (!isOwner && !isReviewer) return res.status(403).json({ error: "Access denied." });
     if (!work) return;
 
     return res.json({ work });
@@ -106,8 +151,11 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
   });
 
   router.post("/:id/review", (req, res) => {
-    const work = requireOwnedWork(req, res);
-    if (!work) return;
+    const work = getWorkById(db, Number(req.params.id));
+    if (!work) return res.status(404).json({ error: "Work not found." });
+    const isOwner = work.createdBy?.id === req.auth.user.id;
+    const isReviewer = work.assignedReviewer?.id === req.auth.user.id;
+    if (!isOwner && !isReviewer) return res.status(403).json({ error: "Access denied." });
 
     const action = String(req.body?.action || "");
 
