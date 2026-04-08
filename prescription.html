@@ -791,7 +791,6 @@
         var work = null;
         var diagnostics = null;
 
-        var isLiveMode = false;
         try {
             var endpoint = isRegen && currentWorkId
                 ? '/api/works/' + currentWorkId + '/regenerate'
@@ -804,59 +803,36 @@
             });
 
             if (response.status === 401) {
-                // 未登录 — 提示并引导
                 clearInterval(interval);
                 loader.style.display = 'none';
-                if (confirm('需要登录后才能使用 AI 真实生成功能。\n\n点击"确定"前往登录页面，或"取消"使用演示模式。')) {
-                    window.location.href = 'Login.html';
-                    return;
-                }
-                throw new Error('auth_skipped');
+                alert('请先登录后再使用生成功能。');
+                window.location.href = 'Login.html';
+                return;
             }
 
-            if (!response.ok) throw new Error('API error ' + response.status);
+            if (!response.ok) {
+                var errBody = await response.json().catch(function() { return {}; });
+                throw new Error(errBody.error || 'API 请求失败 (' + response.status + ')');
+            }
 
             var data = await response.json();
             work = data.work;
             currentWorkId = work.id;
-            isLiveMode = true;
             var version = work.latestVersion || (work.versions && work.versions[0]);
             masterJson = version ? version.masterJson : null;
             diagnostics = version ? version.diagnostics : null;
 
         } catch (apiErr) {
-            // Fallback 模拟
-            currentWorkId = null;
-            isLiveMode = false;
-            await new Promise(function(r) { setTimeout(r, 2000); });
-
-            var pName = input.patient.name;
-            masterJson = {
-                spec: {
-                    clinical_core: {
-                        clinical_summary: pName + '目前处于' + input.patient.diagnosis + '恢复期，需重点关注' + input.form.focusTopics.join('、') + '。',
-                        must_know: ['术后恢复需要循序渐进', '营养摄入对康复至关重要'],
-                        must_do: ['少量多餐，避免烫食', '保持每日30分钟轻度步行', '按时复查，记录恢复情况'],
-                        must_avoid: ['避免辛辣刺激性食物', '切勿剧烈运动或提重物'],
-                        red_flags: ['持续呕吐或无法进食', '伤口出血或异常分泌物', '体温持续38.5度以上']
-                    },
-                    copy_master: {
-                        one_sentence_takeaway: '术后恢复关键在于科学饮食和适度活动，遇到危险信号请及时就医。',
-                        narration_script: pName + '你好，根据您目前的恢复状况，医生为您准备了以下科普内容...',
-                        short_summary: '本处方针对' + input.patient.diagnosis + '患者，重点关注' + input.form.focusTopics.join('、') + '。'
-                    },
-                    poster_spec: {}
-                },
-                status: { text_master: 'mock-ready', image_generation: 'mock-ready', video_generation: 'queued', poster_render: 'browser-ready' },
-                artifacts: {
-                    images: [
-                        { id: 'hero', role: 'poster_hero', status: 'mock-ready' },
-                        { id: 'scene', role: 'video_reference', status: 'mock-ready' }
-                    ],
-                    videos: [{ id: 'v1', status: 'queued' }],
-                    poster: {}
-                }
-            };
+            clearInterval(interval);
+            loader.style.display = 'none';
+            var errorBanner = document.getElementById('gen-mode-banner');
+            errorBanner.classList.remove('hidden');
+            errorBanner.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">'
+                + '<div class="flex items-center gap-2 mb-2"><i class="fa-solid fa-circle-xmark text-red-600"></i><span class="text-red-800 font-bold">生成失败</span></div>'
+                + '<p class="text-red-700">' + (apiErr.message || '无法连接生成服务') + '</p>'
+                + '<p class="text-red-600 mt-2">请确认：1) 已<a href="Login.html" class="underline font-bold">登录</a>账号 &nbsp; 2) 网络连接正常</p>'
+                + '</div>';
+            return;
         }
 
         // === 渲染结果 ===
@@ -865,14 +841,10 @@
         statusBar.classList.remove('hidden');
         genResult.classList.remove('hidden');
 
-        // 显示模式提示
+        // 显示真实 API 成功提示
         var banner = document.getElementById('gen-mode-banner');
         banner.classList.remove('hidden');
-        if (isLiveMode) {
-            banner.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2 text-sm"><i class="fa-solid fa-circle-check text-green-600"></i><span class="text-green-800 font-medium">真实 API 生成</span><span class="text-green-600">内容由豆包大模型 + 火山引擎生成，图片和视频为真实 AI 产出</span></div>';
-        } else {
-            banner.innerHTML = '<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 text-sm"><i class="fa-solid fa-triangle-exclamation text-amber-600"></i><span class="text-amber-800 font-medium">演示模式</span><span class="text-amber-600">未连接后端 API，显示模拟数据。<a href="Login.html" class="underline font-medium">登录</a>后可使用真实 AI 生成。</span></div>';
-        }
+        banner.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2 text-sm"><i class="fa-solid fa-circle-check text-green-600"></i><span class="text-green-800 font-medium">AI 真实生成完成</span><span class="text-green-600">内容由豆包大模型生成，图片由 Seedream 生成，视频由 Seedance 生成</span></div>';
 
         if (masterJson) {
             textArea.innerHTML = renderMasterContent(masterJson);
