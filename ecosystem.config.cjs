@@ -2,7 +2,7 @@
 module.exports = {
   apps: [{
     name: "mediark",
-    script: "server/app.js",
+    script: "server/start.js",
     instances: 1,
     autorestart: true,
     watch: false,

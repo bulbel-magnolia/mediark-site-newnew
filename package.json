@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server/app.js",
+    "start": "node server/start.js",
     "seed": "node server/seed.js",
     "test:server": "node server/tests/works.test.js && node server/tests/run-smoke.js",
     "test": "node tests/prescription/master-schema.test.js && node tests/prescription/poster-renderer.test.js && node tests/prescription/api-config.test.js && node tests/prescription/live-refinement.test.js && node tests/prescription/provider-clients-video.test.js && node tests/prescription/pipeline-live.test.js && node tests/prescription/pipeline-fallback.test.js && node server/tests/works.test.js && node server/tests/run-smoke.js"
