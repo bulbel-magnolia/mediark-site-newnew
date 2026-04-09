@@ -94,9 +94,8 @@ export async function requestTextRefinement({ provider, prompt, fetchImpl }) {
     body = {
       model: provider.model,
       temperature: 0.3,
-      response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: "Return one JSON object only." },
+        { role: "system", content: "You must return one valid JSON object only. No markdown fences, no explanation, no extra text." },
         { role: "user", content: prompt }
       ]
     };
