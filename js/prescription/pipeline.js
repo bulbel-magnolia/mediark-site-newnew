@@ -244,26 +244,36 @@ async function buildImageArtifacts({ masterJson, config, fetchImpl }) {
   return images;
 }
 
-async function buildArtifacts({ masterJson, config, fetchImpl, mode, sleep, skipVideoPolling = false }) {
+async function buildArtifacts({ masterJson, config, fetchImpl, mode, sleep, skipVideoPolling = false, enabledFormats = {} }) {
   if (mode === "mock") {
-    return buildMockArtifacts();
+    const mock = buildMockArtifacts();
+    // 在 mock 模式下也尊重格式选择
+    if (enabledFormats.image === false) mock.images = [];
+    if (enabledFormats.video === false) mock.videos = [];
+    return mock;
   }
 
-  const images = await buildImageArtifacts({ masterJson, config, fetchImpl });
+  // 图片：仅在勾选了 image 或 poster 时生成（poster 需要 hero_image）
+  const needImages = enabledFormats.image !== false || enabledFormats.poster !== false;
+  const images = needImages
+    ? await buildImageArtifacts({ masterJson, config, fetchImpl })
+    : [];
 
-  let videos;
-  if (skipVideoPolling) {
-    // Only create video task, don't poll — return immediately with taskId
-    videos = await buildVideoTaskOnly({ masterJson, imageArtifacts: images, config, fetchImpl });
-  } else {
-    videos = await buildVideoArtifacts({
-      masterJson,
-      imageArtifacts: images,
-      config,
-      fetchImpl,
-      mode,
-      sleep
-    });
+  // 视频：仅在勾选了 video 时生成
+  let videos = [];
+  if (enabledFormats.video !== false) {
+    if (skipVideoPolling) {
+      videos = await buildVideoTaskOnly({ masterJson, imageArtifacts: images, config, fetchImpl });
+    } else {
+      videos = await buildVideoArtifacts({
+        masterJson,
+        imageArtifacts: images,
+        config,
+        fetchImpl,
+        mode,
+        sleep
+      });
+    }
   }
 
   return {
@@ -271,7 +281,7 @@ async function buildArtifacts({ masterJson, config, fetchImpl, mode, sleep, skip
     videos,
     audio: buildAudioArtifacts(config, mode),
     poster: {
-      html: "browser-generated",
+      html: enabledFormats.poster !== false ? "browser-generated" : "",
       png: "",
       pdf: ""
     }
@@ -319,15 +329,27 @@ async function buildVideoTaskOnly({ masterJson, imageArtifacts, config, fetchImp
   }
 }
 
-export async function generatePrescriptionBundle({ patient, formInput, runtime = {}, skipVideoPolling = false }) {
+export async function generatePrescriptionBundle({ patient, formInput, runtime = {}, skipVideoPolling = false, enabledFormats = {} }) {
   const { config, fetchImpl, sleep } = resolveRuntime(runtime);
   const mode = resolveMode(config);
   const evidence = buildEvidenceBundle(formInput.focusTopics);
 
+  // 默认全部启用（向后兼容前端直接调用的情况）
+  const formats = {
+    text: enabledFormats.text !== false,
+    poster: enabledFormats.poster !== false,
+    image: enabledFormats.image !== false,
+    video: enabledFormats.video !== false
+  };
+
   let masterJson = buildMasterJson({ patient, formInput, evidence });
 
-  masterJson.spec.image_spec = createImageSpec(patient, formInput.focusTopics);
-  masterJson.spec.video_spec = createVideoSpec(patient, formInput.focusTopics, formInput);
+  masterJson.spec.image_spec = (formats.image || formats.poster)
+    ? createImageSpec(patient, formInput.focusTopics)
+    : { assets: [] };
+  masterJson.spec.video_spec = formats.video
+    ? createVideoSpec(patient, formInput.focusTopics, formInput)
+    : { shots: [] };
   masterJson.spec.audio_spec = {
     voice_style: "warm_clinical",
     language: formInput.language,
@@ -350,7 +372,8 @@ export async function generatePrescriptionBundle({ patient, formInput, runtime =
     fetchImpl,
     mode,
     sleep,
-    skipVideoPolling
+    skipVideoPolling,
+    enabledFormats: formats
   });
 
   masterJson.artifacts = artifacts;

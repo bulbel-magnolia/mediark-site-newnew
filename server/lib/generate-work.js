@@ -1,6 +1,9 @@
 import { generatePrescriptionBundle } from "../../js/prescription/pipeline.js";
 
 function normalizeInput(input = {}) {
+  const formatStr = String(input.work?.format || "poster-text");
+  const enabledFormats = new Set(formatStr.split("-").filter(Boolean));
+
   return {
     patient: {
       id: input.patient?.id || `case-${Date.now()}`,
@@ -19,19 +22,27 @@ function normalizeInput(input = {}) {
       topic: input.work?.topic || "",
       format: input.work?.format || "",
       audience: input.work?.audience || ""
-    }
+    },
+    enabledFormats: [...enabledFormats]
   };
 }
 
 export async function generateWorkBundle({ input, runtime = {} }) {
   const normalizedInput = normalizeInput(input);
+  const formats = new Set(normalizedInput.enabledFormats);
   const bundle = await generatePrescriptionBundle({
     patient: normalizedInput.patient,
     formInput: normalizedInput.form,
     runtime: {
       ...runtime
     },
-    skipVideoPolling: true
+    skipVideoPolling: true,
+    enabledFormats: {
+      text: true,
+      poster: formats.has("poster"),
+      image: formats.has("image"),
+      video: formats.has("video")
+    }
   });
 
   return {
