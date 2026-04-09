@@ -10,22 +10,20 @@ function buildEvidenceContextSnippet(evidence = [], maxLength = 120) {
 
   const points = [];
   for (const entry of evidence) {
-    if (Array.isArray(entry.key_points)) {
-      for (const kp of entry.key_points) {
-        if (typeof kp === "string" && kp.trim()) {
-          points.push(kp.trim());
-        }
-      }
+    // Prefer title (often has English version) for image/video prompts
+    if (entry.title && typeof entry.title === "string") {
+      points.push(entry.title.trim());
     }
   }
 
   if (!points.length) return "";
 
+  // Keep only short, ASCII-safe entries for image/video API compatibility
   const selected = [...new Set(points)]
-    .filter((p) => p.length <= 30)
-    .slice(0, 3);
+    .filter((p) => p.length <= 60)
+    .slice(0, 2);
 
-  const snippet = selected.join(", ");
+  const snippet = selected.join("; ");
   return snippet.length <= maxLength ? snippet : `${snippet.slice(0, maxLength - 1)}…`;
 }
 
@@ -264,11 +262,25 @@ async function buildImageArtifacts({ masterJson, config, fetchImpl }) {
   const images = [];
 
   for (const asset of assets) {
-    images.push(await requestImageGeneration({
-      provider,
-      asset,
-      fetchImpl
-    }));
+    try {
+      images.push(await requestImageGeneration({
+        provider,
+        asset,
+        fetchImpl
+      }));
+    } catch (err) {
+      console.warn(`Image generation failed for ${asset.id}:`, err?.message || err);
+      images.push({
+        id: asset.id,
+        role: asset.role,
+        provider: provider.provider,
+        model: provider.model,
+        status: "generation-failed",
+        path: "",
+        prompt: asset.prompt,
+        errorMessage: String(err?.message || "Unknown error")
+      });
+    }
   }
 
   return images;

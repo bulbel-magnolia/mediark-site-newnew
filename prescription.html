@@ -878,6 +878,14 @@
 
     function goBackToStep1() {
         if (_videoAutoTimer) { clearInterval(_videoAutoTimer); _videoAutoTimer = null; }
+        // 把审核意见回填到医生备注
+        var feedback = (document.getElementById('feedback-input').value || '').trim();
+        if (feedback) {
+            var notes = document.getElementById('doctor-notes');
+            var existing = (notes.value || '').trim();
+            notes.value = existing ? existing + '\n【审核意见】' + feedback : '【审核意见】' + feedback;
+            document.getElementById('feedback-input').value = '';
+        }
         document.getElementById('step-2-content').classList.add('hidden');
         document.getElementById('gen-mode-banner').classList.add('hidden');
         document.getElementById('step-1-content').classList.remove('hidden');
