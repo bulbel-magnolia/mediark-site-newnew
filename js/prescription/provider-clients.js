@@ -101,14 +101,23 @@ export async function requestTextRefinement({ provider, prompt, fetchImpl }) {
     };
   }
 
-  const response = await fetchImpl(buildUrl(provider.baseUrl, endpoint), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${provider.apiKey}`
-    },
-    body: JSON.stringify(body)
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+
+  let response;
+  try {
+    response = await fetchImpl(buildUrl(provider.baseUrl, endpoint), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${provider.apiKey}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const payload = await readErrorPayload(response);
@@ -420,18 +429,27 @@ export async function requestVideoGeneration({
 }
 
 export async function requestImageGeneration({ provider, asset, fetchImpl }) {
-  const response = await fetchImpl(buildUrl(provider.baseUrl, "/images/generations"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${provider.apiKey}`
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      prompt: asset.prompt,
-      size: resolveImageSize(asset)
-    })
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+
+  let response;
+  try {
+    response = await fetchImpl(buildUrl(provider.baseUrl, "/images/generations"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${provider.apiKey}`
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        prompt: asset.prompt,
+        size: resolveImageSize(asset)
+      }),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const payload = await readErrorPayload(response);
