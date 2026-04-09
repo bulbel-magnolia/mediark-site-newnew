@@ -344,11 +344,19 @@ async function buildVideoTaskOnly({ masterJson, imageArtifacts, config, fetchImp
     const shots = videoSpec.shots || [];
     const firstPrompt = shots.find((s) => s?.motion_prompt)?.motion_prompt || "A calm clinical education video for patient recovery guidance.";
 
-    const taskResponse = await fetchImpl(`${provider.baseUrl.replace(/\/+$/, "")}/contents/generations/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
-      body: JSON.stringify({ model: provider.model, content: [{ type: "text", text: firstPrompt }] })
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    let taskResponse;
+    try {
+      taskResponse = await fetchImpl(`${provider.baseUrl.replace(/\/+$/, "")}/contents/generations/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.apiKey}` },
+        body: JSON.stringify({ model: provider.model, content: [{ type: "text", text: firstPrompt }] }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!taskResponse.ok) {
       return [{ id: "short_video", provider: provider.provider, model: provider.model, status: "generation-failed", path: "", thumbnail: "" }];

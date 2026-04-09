@@ -290,38 +290,47 @@ export async function requestVideoGeneration({
 }) {
   // Always use real setTimeout for polling — callers may pass a no-op sleep for tests
   const pollSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  const taskResponse = await fetchImpl(buildUrl(provider.baseUrl, "/contents/generations/tasks"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${provider.apiKey}`
-    },
-    body: JSON.stringify({
-      model: provider.model,
-      content: [
-        {
-          type: "text",
-          text: buildVideoPrompt(videoSpec, provider)
-        },
-        ...(() => {
-          const referenceImageUrl = resolveReferenceImageUrl(videoSpec, imageArtifacts);
+  const controller = new AbortController();
+  const taskTimeout = setTimeout(() => controller.abort(), 60000);
 
-          if (!referenceImageUrl) {
-            return [];
-          }
+  let taskResponse;
+  try {
+    taskResponse = await fetchImpl(buildUrl(provider.baseUrl, "/contents/generations/tasks"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${provider.apiKey}`
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        content: [
+          {
+            type: "text",
+            text: buildVideoPrompt(videoSpec, provider)
+          },
+          ...(() => {
+            const referenceImageUrl = resolveReferenceImageUrl(videoSpec, imageArtifacts);
 
-          return [
-            {
-              type: "image_url",
-              image_url: {
-                url: referenceImageUrl
-              }
+            if (!referenceImageUrl) {
+              return [];
             }
-          ];
-        })()
-      ]
-    })
-  });
+
+            return [
+              {
+                type: "image_url",
+                image_url: {
+                  url: referenceImageUrl
+                }
+              }
+            ];
+          })()
+        ]
+      }),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(taskTimeout);
+  }
 
   if (!taskResponse.ok) {
     const payload = await readErrorPayload(taskResponse);
