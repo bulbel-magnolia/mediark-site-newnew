@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS patients (
   name TEXT NOT NULL,
   diagnosis TEXT NOT NULL DEFAULT '',
   stage TEXT NOT NULL DEFAULT '',
+  cancer_type TEXT NOT NULL DEFAULT 'esophageal',
   tags_json TEXT NOT NULL DEFAULT '[]',
   notes TEXT NOT NULL DEFAULT '',
   created_by INTEGER NOT NULL REFERENCES users(id),
@@ -153,3 +154,18 @@ CREATE TABLE IF NOT EXISTS knowledge_entries (
 );
 CREATE INDEX IF NOT EXISTS idx_knowledge_cancer_type ON knowledge_entries(cancer_type);
 CREATE INDEX IF NOT EXISTS idx_knowledge_category ON knowledge_entries(category);
+
+CREATE TABLE IF NOT EXISTS clinical_defaults (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cancer_type TEXT NOT NULL DEFAULT 'esophageal',
+  category TEXT NOT NULL,
+  must_do_json TEXT NOT NULL DEFAULT '[]',
+  must_avoid_json TEXT NOT NULL DEFAULT '[]',
+  red_flags_json TEXT NOT NULL DEFAULT '[]',
+  faq_json TEXT NOT NULL DEFAULT '[]',
+  language TEXT NOT NULL DEFAULT 'zh-CN',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(cancer_type, category, language)
+);
+CREATE INDEX IF NOT EXISTS idx_clinical_defaults_lookup ON clinical_defaults(cancer_type, category, language);

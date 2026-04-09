@@ -5,9 +5,35 @@ import { buildPosterPayload } from "./poster-renderer.js";
 import { applyCopyRefinement, buildTextRefinementPrompt } from "./live-refinement.js";
 import { requestImageGeneration, requestTextRefinement, requestVideoGeneration } from "./provider-clients.js";
 
-function createImageSpec(patient, focusTopics = []) {
+function buildEvidenceContextSnippet(evidence = [], maxLength = 120) {
+  if (!evidence.length) return "";
+
+  const points = [];
+  for (const entry of evidence) {
+    if (Array.isArray(entry.key_points)) {
+      for (const kp of entry.key_points) {
+        if (typeof kp === "string" && kp.trim()) {
+          points.push(kp.trim());
+        }
+      }
+    }
+  }
+
+  if (!points.length) return "";
+
+  const selected = [...new Set(points)]
+    .filter((p) => p.length <= 30)
+    .slice(0, 3);
+
+  const snippet = selected.join(", ");
+  return snippet.length <= maxLength ? snippet : `${snippet.slice(0, maxLength - 1)}…`;
+}
+
+function createImageSpec(patient, focusTopics = [], evidence = []) {
   const primaryTopic = focusTopics[0] || "recovery education";
   const diagnosis = patient?.diagnosis || "oncology recovery";
+  const evidenceContext = buildEvidenceContextSnippet(evidence, 100);
+  const contextClause = evidenceContext ? `, clinical context: ${evidenceContext}` : "";
 
   return {
     style: "clinical_education_first",
@@ -17,7 +43,7 @@ function createImageSpec(patient, focusTopics = []) {
         id: "hero_image",
         role: "poster_hero",
         purpose: "Poster hero visual",
-        prompt: `A realistic patient education poster scene for ${diagnosis}, focused on ${primaryTopic}, warm clinical lighting, calm hospital counseling moment, clean background, no text overlay.`,
+        prompt: `A realistic patient education poster scene for ${diagnosis}, focused on ${primaryTopic}${contextClause}, warm clinical lighting, calm hospital counseling moment, clean background, no text overlay.`,
         negative_prompt: "blood, surgery close-up, distorted body, extra fingers, horror, text overlay",
         aspect_ratio: "4:5"
       },
@@ -25,7 +51,7 @@ function createImageSpec(patient, focusTopics = []) {
         id: "scene_reference",
         role: "video_reference",
         purpose: "Short video reference frame",
-        prompt: `A realistic short-form clinical education scene for ${diagnosis}, focused on ${primaryTopic}, doctor or nurse explaining recovery steps to a patient, steady composition, no text overlay.`,
+        prompt: `A realistic short-form clinical education scene for ${diagnosis}, focused on ${primaryTopic}${contextClause}, doctor or nurse explaining recovery steps to a patient, steady composition, no text overlay.`,
         negative_prompt: "horror, distorted face, extra limbs, surreal objects, text overlay",
         aspect_ratio: "16:9"
       }
@@ -33,11 +59,13 @@ function createImageSpec(patient, focusTopics = []) {
   };
 }
 
-function createVideoSpec(patient, focusTopics = [], formInput = {}) {
+function createVideoSpec(patient, focusTopics = [], formInput = {}, evidence = []) {
   const message = focusTopics.join(", ") || "recovery education";
   const stage = patient?.stage || "recovery";
   const diagnosis = patient?.diagnosis || "recovery care";
   const requestedDurationSec = Number(formInput?.videoDurationSec);
+  const evidenceContext = buildEvidenceContextSnippet(evidence, 150);
+  const contextClause = evidenceContext ? `, key guidance: ${evidenceContext}` : "";
 
   return {
     ...(Number.isFinite(requestedDurationSec) && requestedDurationSec > 0
@@ -47,13 +75,13 @@ function createVideoSpec(patient, focusTopics = [], formInput = {}) {
       {
         id: "shot_1",
         reference_asset_id: "scene_reference",
-        motion_prompt: `Animated clinical education scene about ${diagnosis} during ${stage}, blue and white infographic style, gentle camera motion, icon-led recovery guidance, emphasize ${message}, no surgery, no blood, no invasive procedures, no text overlay.`,
+        motion_prompt: `Animated clinical education scene about ${diagnosis} during ${stage}${contextClause}, blue and white infographic style, gentle camera motion, icon-led recovery guidance, emphasize ${message}, no surgery, no blood, no invasive procedures, no text overlay.`,
         caption: `${stage}: ${message}`
       },
       {
         id: "shot_2",
         reference_asset_id: "hero_image",
-        motion_prompt: `Medical explainer animation highlighting ${message}, clean clinical atmosphere, calm educational visual language, infographic motion graphics, no sensitive treatment content, no text overlay.`,
+        motion_prompt: `Medical explainer animation highlighting ${message}${contextClause}, clean clinical atmosphere, calm educational visual language, infographic motion graphics, no sensitive treatment content, no text overlay.`,
         caption: `Key education points: ${message}`
       }
     ]
@@ -331,10 +359,10 @@ async function buildVideoTaskOnly({ masterJson, imageArtifacts, config, fetchImp
   }
 }
 
-export async function generatePrescriptionBundle({ patient, formInput, runtime = {}, skipVideoPolling = false, enabledFormats = {} }) {
+export async function generatePrescriptionBundle({ patient, formInput, runtime = {}, skipVideoPolling = false, enabledFormats = {}, evidenceOverride = null, clinicalDefaultsOverride = null }) {
   const { config, fetchImpl, sleep } = resolveRuntime(runtime);
   const mode = resolveMode(config);
-  const evidence = buildEvidenceBundle(formInput.focusTopics);
+  const evidence = evidenceOverride || buildEvidenceBundle(formInput.focusTopics);
 
   // 默认全部启用（向后兼容前端直接调用的情况）
   const formats = {
@@ -344,13 +372,13 @@ export async function generatePrescriptionBundle({ patient, formInput, runtime =
     video: enabledFormats.video !== false
   };
 
-  let masterJson = buildMasterJson({ patient, formInput, evidence });
+  let masterJson = buildMasterJson({ patient, formInput, evidence, clinicalDefaults: clinicalDefaultsOverride });
 
   masterJson.spec.image_spec = (formats.image || formats.poster)
-    ? createImageSpec(patient, formInput.focusTopics)
+    ? createImageSpec(patient, formInput.focusTopics, evidence)
     : { assets: [] };
   masterJson.spec.video_spec = formats.video
-    ? createVideoSpec(patient, formInput.focusTopics, formInput)
+    ? createVideoSpec(patient, formInput.focusTopics, formInput, evidence)
     : { shots: [] };
   masterJson.spec.audio_spec = {
     voice_style: "warm_clinical",

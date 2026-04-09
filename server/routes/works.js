@@ -103,7 +103,8 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
 
     const generated = await generateWorkBundle({
       input: req.body?.input || {},
-      runtime: generationRuntime
+      runtime: generationRuntime,
+      db
     });
 
     const work = createGeneratedWork(db, {
@@ -136,7 +137,8 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
 
     const generated = await generateWorkBundle({
       input: nextInput,
-      runtime: generationRuntime
+      runtime: generationRuntime,
+      db
     });
     const work = appendGeneratedWorkVersion(db, {
       workId,

@@ -27,7 +27,17 @@ export function clampPosterText(value, limit) {
   return `${text.slice(0, Math.max(limit - 1, 1)).trim()}…`;
 }
 
-function buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, language }) {
+function buildSourceTag(evidence, isEnglish) {
+  const sources = [...new Set(
+    (Array.isArray(evidence) ? evidence : [])
+      .map((e) => e.source)
+      .filter(Boolean)
+  )];
+  if (sources.length) return sources.slice(0, 2).join(" / ");
+  return isEnglish ? "Evidence bundle" : "团队证据包支持";
+}
+
+function buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, language, evidence }) {
   const primaryTopic = focusTopics[0] || "术后恢复";
   const diagnosis = patient.diagnosis || "肿瘤康复";
   const stage = patient.stage || "患者宣教";
@@ -43,11 +53,11 @@ function buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, la
     dont_list: mustAvoid.slice(0, 3).map((item) => clampPosterText(item, POSTER_LIMITS.action)),
     red_flags: redFlags.slice(0, 3).map((item) => clampPosterText(item, POSTER_LIMITS.redFlag)),
     footer_badge: isEnglish ? "Doctor confirmed" : "医生确认后发放",
-    source_tag: isEnglish ? "Evidence bundle" : "团队证据包支持"
+    source_tag: buildSourceTag(evidence, isEnglish)
   };
 }
 
-export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], options = {} }) {
+export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], options = {}, clinicalDefaults = null }) {
   const language = formInput.language || "zh-CN";
   const isEnglish = String(language).toLowerCase().startsWith("en");
   const focusTopics = normalizeArray(formInput.focusTopics);
@@ -55,18 +65,27 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
     id: item.id || "",
     title: item.title || "",
     source: item.source || "",
-    claim: item.claim || ""
+    claim: item.claim || item.summary || "",
+    summary: item.summary || item.claim || "",
+    key_points: Array.isArray(item.key_points) ? item.key_points : [],
+    evidence_level: item.evidence_level || "",
+    year: item.year || null,
+    category: item.category || ""
   }));
 
-  const mustDo = isEnglish
+  const fallbackMustDo = isEnglish
     ? ["Small frequent meals", "Soft warm foods", "Follow review plan"]
     : ["少量多餐", "温软流食", "按时复诊"];
-  const mustAvoid = isEnglish
+  const fallbackMustAvoid = isEnglish
     ? ["Hot or hard foods", "Eating too fast", "Ignoring discomfort"]
     : ["过热过硬", "进食过快", "忽视不适"];
-  const redFlags = isEnglish
+  const fallbackRedFlags = isEnglish
     ? ["Persistent vomiting", "Severe chest pain", "Unable to eat"]
     : ["持续呕吐", "剧烈胸痛", "无法进食"];
+
+  const mustDo = clinicalDefaults?.mustDo?.length ? clinicalDefaults.mustDo : fallbackMustDo;
+  const mustAvoid = clinicalDefaults?.mustAvoid?.length ? clinicalDefaults.mustAvoid : fallbackMustAvoid;
+  const redFlags = clinicalDefaults?.redFlags?.length ? clinicalDefaults.redFlags : fallbackRedFlags;
 
   return {
     meta: {
@@ -133,7 +152,7 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
           : `${patient.name || "患者"}当前处于${patient.stage || "恢复期"}，请重点关注${focusTopics.join("、") || "饮食和危险信号"}。`,
         doctor_review_note: isEnglish ? "Doctor confirmation is required before library release." : "需由医生确认后再入库发放。"
       },
-      poster_spec: buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, language }),
+      poster_spec: buildPosterSpec({ patient, focusTopics, mustDo, mustAvoid, redFlags, language, evidence }),
       image_spec: {
         style: "clean_medical_poster",
         palette: ["#0F4C81", "#D9EAF7", "#F7FBFF"],

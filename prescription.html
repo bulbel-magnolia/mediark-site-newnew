@@ -511,7 +511,7 @@
         var formatStr = formats.sort().join('-') || 'text';
 
         return {
-            patient: { id: pId, name: pName, diagnosis: pDiag },
+            patient: { id: pId, name: pName, diagnosis: pDiag, stage: p.stage || '', cancerType: p.cancerType || '' },
             form: {
                 language: currentLang === 'zh' ? 'zh-CN' : 'en',
                 focusTopics: focusTopicsList.slice(),

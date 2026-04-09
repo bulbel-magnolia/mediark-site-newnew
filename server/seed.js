@@ -174,11 +174,12 @@ function seedPatients(db, doctorId) {
   ];
 
   for (const p of patients) {
-    run(db, `INSERT INTO patients (name, diagnosis, stage, tags_json, notes, created_by)
-             VALUES (:name, :diagnosis, :stage, :tagsJson, :notes, :createdBy)`, {
+    run(db, `INSERT INTO patients (name, diagnosis, stage, cancer_type, tags_json, notes, created_by)
+             VALUES (:name, :diagnosis, :stage, :cancerType, :tagsJson, :notes, :createdBy)`, {
       name: p.name,
       diagnosis: p.diagnosis,
       stage: p.stage,
+      cancerType: "esophageal",
       tagsJson: toJson(p.tags),
       notes: p.notes,
       createdBy: doctorId
@@ -340,6 +341,138 @@ function seedKnowledge(db) {
       keyPoints: ["高热(>38.5°C)+胸痛警惕吻合口瘘", "呕血或引流液鲜红提示出血", "呼吸困难加重+血氧<90%必须急诊", "声音嘶哑提示喉返神经损伤", "以上红旗症状需立即就医", "日常坚持深呼吸训练预防肺部并发症"],
       evidenceLevel: null, url: "",
       tags: ["食管癌", "术后并发症", "红旗症状", "患者教育", "急救"]
+    },
+    // --- 新增临床试验 (6条) ---
+    {
+      cancerType: "esophageal", category: "trial",
+      title: "ATTRACTION-3：纳武利尤单抗二线治疗晚期食管鳞癌III期研究",
+      titleEn: "ATTRACTION-3: Nivolumab vs Chemotherapy as Second-Line for Advanced ESCC",
+      source: "Lancet Oncology", authors: "Kato K et al.", year: 2019,
+      summary: "III期RCT证实纳武利尤单抗二线治疗晚期食管鳞癌较化疗显著改善OS(10.9 vs 8.4个月,HR 0.77),≥3级不良反应仅18% vs 63%,安全性优势突出,奠定免疫单药二线治疗地位。获FDA/EMA批准用于食管鳞癌二线治疗。",
+      keyPoints: ["纳入419例既往含氟尿嘧啶/铂类方案失败的晚期食管鳞癌", "中位OS显著改善:10.9个月 vs 8.4个月(HR 0.77, P=0.019)", "12个月OS率47% vs 34%,18个月OS率31% vs 21%", "≥3级治疗相关不良事件显著降低(18% vs 63%)", "获FDA/EMA批准用于食管鳞癌二线治疗"],
+      evidenceLevel: "1A", url: "https://doi.org/10.1016/S1470-2045(19)30626-6",
+      tags: ["食管癌", "鳞癌", "纳武利尤单抗", "二线治疗", "免疫治疗", "ATTRACTION-3"]
+    },
+    {
+      cancerType: "esophageal", category: "trial",
+      title: "RATIONALE-302：替雷利珠单抗二线治疗晚期食管鳞癌III期研究",
+      titleEn: "RATIONALE-302: Tislelizumab vs Chemotherapy as Second-Line for Advanced ESCC",
+      source: "Journal of Clinical Oncology", authors: "Shen L et al.", year: 2022,
+      summary: "全球多中心III期RCT证实替雷利珠单抗二线治疗晚期食管鳞癌较化疗显著改善OS(8.6 vs 6.3个月,HR 0.70, P=0.0001),ORR翻倍(20.3% vs 9.8%),安全性更优。2024年3月获FDA批准。",
+      keyPoints: ["全球11个国家512例晚期食管鳞癌患者,一线化疗后进展", "OS显著改善:8.6个月 vs 6.3个月(HR 0.70, P=0.0001)", "ORR提高至20.3% vs 9.8%,缓解持续时间7.1 vs 4.0个月", "≥3级治疗相关不良事件19% vs 56%", "2024年3月获FDA批准用于食管鳞癌二线治疗"],
+      evidenceLevel: "1A", url: "https://doi.org/10.1200/JCO.21.01926",
+      tags: ["食管癌", "鳞癌", "替雷利珠单抗", "二线治疗", "免疫治疗", "RATIONALE-302"]
+    },
+    {
+      cancerType: "esophageal", category: "trial",
+      title: "ORIENT-15：信迪利单抗联合化疗一线治疗晚期食管鳞癌III期研究",
+      titleEn: "ORIENT-15: Sintilimab Plus Chemotherapy as First-Line for Advanced ESCC",
+      source: "BMJ", authors: "Lu Z et al.", year: 2022,
+      summary: "多中心双盲III期RCT证实信迪利单抗联合化疗一线治疗晚期食管鳞癌显著改善OS(16.7 vs 12.5个月,HR 0.628)和PFS(7.2 vs 5.7个月),ORR达66.1%。信迪利单抗为国产可及性高的PD-1抑制剂,获NMPA批准。",
+      keyPoints: ["659例未经治疗的晚期食管鳞癌随机分组", "中位OS:16.7个月 vs 12.5个月(HR 0.628, P<0.001)", "中位PFS:7.2个月 vs 5.7个月(HR 0.558)", "ORR:66.1% vs 45.5%", "信迪利单抗为国产PD-1抑制剂,可及性高"],
+      evidenceLevel: "1A", url: "https://doi.org/10.1136/bmj-2021-068714",
+      tags: ["食管癌", "鳞癌", "信迪利单抗", "一线治疗", "免疫联合化疗", "ORIENT-15"]
+    },
+    {
+      cancerType: "esophageal", category: "trial",
+      title: "JUPITER-06：特瑞普利单抗联合化疗一线治疗晚期食管鳞癌III期研究",
+      titleEn: "JUPITER-06: Toripalimab Plus Chemotherapy as First-Line for Advanced ESCC",
+      source: "Cancer Cell", authors: "Wang ZX et al.", year: 2022,
+      summary: "III期RCT证实特瑞普利单抗联合紫杉醇/顺铂一线治疗晚期食管鳞癌显著改善PFS(HR 0.58)和OS(17.0 vs 11.0个月,HR 0.58),CR率达26.7%。终分析OS持续获益(17.7 vs 12.9个月)。",
+      keyPoints: ["514例初治晚期食管鳞癌患者随机分组", "中位PFS:5.7 vs 5.5个月(HR 0.58, P<0.0001)", "中期OS:17.0 vs 11.0个月(HR 0.58),为同类最优HR", "BICR评估ORR:69.3% vs 52.1%,完全缓解率达26.7%", "特瑞普利单抗为首个获美国FDA批准的中国自研PD-1"],
+      evidenceLevel: "1A", url: "https://doi.org/10.1016/j.ccell.2022.02.007",
+      tags: ["食管癌", "鳞癌", "特瑞普利单抗", "一线治疗", "免疫联合化疗", "JUPITER-06"]
+    },
+    {
+      cancerType: "esophageal", category: "trial",
+      title: "ESCORT-NEO：卡瑞利珠单抗联合新辅助化疗治疗可切除食管鳞癌III期研究",
+      titleEn: "ESCORT-NEO/NCCES01: Neoadjuvant Camrelizumab Plus Chemo for Resectable ESCC",
+      source: "Nature Medicine", authors: "Qin J et al.", year: 2024,
+      summary: "首个III期RCT证实新辅助卡瑞利珠单抗联合化疗显著提高可切除食管鳞癌pCR率(28.0% vs 4.7%),白蛋白紫杉醇方案最优,未增加手术并发症,开启围手术期免疫治疗新时代。",
+      keyPoints: ["391例可切除局部晚期食管鳞癌按1:1:1随机分三组", "pCR率:卡瑞利珠单抗+白蛋白紫杉醇/顺铂组28.0%,远超化疗组4.7%", "白蛋白紫杉醇方案优于普通紫杉醇方案(pCR 28.0% vs 15.4%)", "添加免疫治疗未增加手术并发症发生率", "首个新辅助免疫III期阳性结果,有望改变治疗范式"],
+      evidenceLevel: "1A", url: "https://doi.org/10.1038/s41591-024-03064-w",
+      tags: ["食管癌", "鳞癌", "卡瑞利珠单抗", "新辅助治疗", "围手术期", "ESCORT-NEO"]
+    },
+    {
+      cancerType: "esophageal", category: "trial",
+      title: "RATIONALE-306：替雷利珠单抗联合化疗一线治疗晚期食管鳞癌全球III期研究",
+      titleEn: "RATIONALE-306: Tislelizumab Plus Chemotherapy as First-Line for Advanced ESCC (Global)",
+      source: "Lancet Oncology", authors: "Shen L et al.", year: 2023,
+      summary: "全球多中心III期RCT,649例晚期食管鳞癌随机接受替雷利珠单抗+化疗或安慰剂+化疗。替雷利珠单抗组中位OS 17.2 vs 10.6个月(HR 0.66),PFS 7.3 vs 5.6个月(HR 0.62),ORR 63% vs 42%。获FDA批准一线食管鳞癌适应证。",
+      keyPoints: ["649例晚期食管鳞癌全球多中心III期研究", "中位OS:17.2 vs 10.6个月(HR 0.66)", "中位PFS:7.3 vs 5.6个月(HR 0.62)", "ORR:63% vs 42%", "获FDA批准用于晚期食管鳞癌一线治疗"],
+      evidenceLevel: "1A", url: "https://doi.org/10.1016/S1470-2045(23)00108-0",
+      tags: ["食管癌", "鳞癌", "替雷利珠单抗", "一线治疗", "免疫联合化疗", "RATIONALE-306"]
+    },
+    // --- 新增支持治疗/患者教育 (7条) ---
+    {
+      cancerType: "esophageal", category: "guideline",
+      title: "食管癌术后疼痛管理与多模式镇痛",
+      titleEn: "Postoperative Pain Management and Multimodal Analgesia After Esophagectomy",
+      source: "ERAS Society / WHO", authors: "Low DE, Allum W, et al.", year: 2019,
+      summary: "食管切除术后推荐以区域麻醉(硬膜外或椎旁阻滞)为基础的多模式镇痛方案,联合非阿片类药物,最大限度减少阿片类使用,促进早期下床活动和肺功能恢复。WHO阶梯镇痛原则仍为癌痛管理基本框架。",
+      keyPoints: ["术后首选胸段硬膜外镇痛(TEA)或椎旁神经阻滞(PVB)", "联合PCA作为补充,按需给予阿片类处理爆发痛", "常规使用对乙酰氨基酚+NSAIDs减少阿片用量30-50%", "术后尽早评估NRS疼痛评分,目标静息≤3分", "良好镇痛是早期下床和呼吸训练的前提"],
+      evidenceLevel: "1A", url: "",
+      tags: ["术后镇痛", "多模式镇痛", "硬膜外镇痛", "ERAS", "WHO阶梯镇痛"]
+    },
+    {
+      cancerType: "esophageal", category: "guideline",
+      title: "食管癌免疫治疗相关不良反应(irAE)识别与管理",
+      titleEn: "Management of Immune-Related Adverse Events (irAEs) in Esophageal Cancer",
+      source: "NCCN/CSCO/ESMO", authors: "Thompson JA, et al.", year: 2024,
+      summary: "食管癌免疫治疗常见irAE包括皮肤毒性(最常见)、甲状腺功能异常(8-22%)、免疫性肺炎和肝炎。G1可继续用药;G2暂停免疫治疗并考虑激素;G3启用泼尼松1-2mg/kg/d;G4永久停药。患者需掌握自我监测要点。",
+      keyPoints: ["皮肤毒性最常见:G1-2外用激素,G3口服泼尼松并暂停治疗", "甲状腺毒性8-22%:先甲亢后甲减,甲减需长期左甲状腺素替代", "免疫性肺炎(3-5%):任何级别暂停免疫治疗,G2予激素", "患者自监:关注皮疹、乏力怕冷、干咳气短、黄疸食欲下降", "每次免疫治疗前常规查甲功和肝功"],
+      evidenceLevel: "2A", url: "",
+      tags: ["免疫治疗", "irAE", "免疫相关不良反应", "PD-1抑制剂", "甲状腺毒性"]
+    },
+    {
+      cancerType: "esophageal", category: "guideline",
+      title: "食管癌化疗所致恶心呕吐(CINV)预防方案",
+      titleEn: "Prevention of CINV in Esophageal Cancer",
+      source: "MASCC/ESMO", authors: "Herrstedt J, et al.", year: 2023,
+      summary: "食管癌常用含顺铂方案属高致吐风险(HEC),推荐四药联合预防:5-HT3受体拮抗剂+NK1受体拮抗剂+地塞米松+奥氮平。含紫杉醇方案属中致吐风险(MEC),推荐二药方案。化疗前30-60分钟服用止吐药。",
+      keyPoints: ["顺铂方案(≥50mg/m²)属高致吐风险,推荐四药预防", "D1:帕洛诺司琼+阿瑞匹坦+地塞米松+奥氮平5mg", "延迟期(D2-4):地塞米松+阿瑞匹坦+奥氮平", "奥氮平5mg与10mg疗效相当且嗜睡更少,推荐低剂量", "患者教育:化疗前30-60分钟服止吐药,少量多餐避油腻"],
+      evidenceLevel: "1A", url: "",
+      tags: ["CINV", "化疗致吐", "止吐", "顺铂", "MASCC", "奥氮平"]
+    },
+    {
+      cancerType: "esophageal", category: "guideline",
+      title: "食管癌早期筛查与早诊早治(中国方案)",
+      titleEn: "Early Detection and Screening of Esophageal Cancer in China",
+      source: "国家卫生健康委", authors: "赫捷, 陈万青, 李兆申 等", year: 2024,
+      summary: "针对45-74岁高危人群(高发区居住、一级亲属史、不良生活习惯)推荐内镜筛查。白光内镜结合碘染色为基本方法,NBI和AI辅助内镜可提高早期癌检出率。高风险人群每5年1次内镜,有低级别上皮内瘤变者缩短至1-3年。",
+      keyPoints: ["高危标准:≥45岁+高发区/亲属史/热烫饮食/吸烟饮酒", "筛查方法:白光内镜+碘染色为基础,NBI精查可疑病变", "AI辅助内镜可将病变遗漏率从6.7%降至1.7%", "高风险人群每5年1次内镜,有病变者每1-3年1次", "预防:戒烟限酒、避免>65°C饮食、减少腌制食品"],
+      evidenceLevel: "2A", url: "",
+      tags: ["食管癌筛查", "早诊早治", "高危人群", "内镜检查", "碘染色", "AI辅助"]
+    },
+    {
+      cancerType: "esophageal", category: "rehabilitation",
+      title: "食管癌术后运动与体力活动指南",
+      titleEn: "Postoperative Exercise Guidelines for Esophageal Cancer Survivors",
+      source: "ACSM", authors: "Campbell KL, et al.", year: 2025,
+      summary: "ACSM推荐癌症幸存者每周≥150分钟中等强度有氧运动+每周2次抗阻训练。食管癌术后运动康复应在出院4周后开始,个体化制定运动处方。PERFECT试验证实术后12周运动可改善生活质量和体能。",
+      keyPoints: ["每周≥150分钟中等强度有氧运动(快走、骑车)", "每周≥2次抗阻训练(2组x12-15次)", "术后第1天即鼓励床边活动,出院后4周开始系统运动", "禁忌:活动性感染、未愈合吻合口漏、严重贫血(Hb<8g/dL)", "≥65岁额外推荐每周≥3天平衡训练降低跌倒风险"],
+      evidenceLevel: "2A", url: "",
+      tags: ["运动康复", "体力活动", "ACSM", "有氧运动", "抗阻训练", "癌症幸存者"]
+    },
+    {
+      cancerType: "esophageal", category: "nutrition",
+      title: "食管癌术后倾倒综合征识别与管理",
+      titleEn: "Dumping Syndrome Recognition and Management After Esophagectomy",
+      source: "Nature Reviews Endocrinology", authors: "Scarpellini E, et al.", year: 2020,
+      summary: "食管切除术后倾倒综合征发生率约50%。早期倾倒(餐后0-60分钟)因高渗食糜致血容量下降;晚期倾倒(餐后1-3小时)因过度胰岛素分泌致低血糖。饮食调整为一线治疗,药物包括阿卡波糖和生长抑素类似物。",
+      keyPoints: ["早期倾倒(餐后0-60分钟):腹胀腹痛腹泻、心悸出汗头晕", "晚期倾倒(餐后1-3小时):低血糖——出冷汗、手抖、心慌", "一线治疗:少量多餐、高蛋白高纤维、避免单糖和精制碳水", "进餐时不饮水,饮水应在餐前/餐后30-60分钟", "晚期倾倒可用阿卡波糖50-100mg随餐口服"],
+      evidenceLevel: "2A", url: "https://doi.org/10.1038/s41574-020-0357-5",
+      tags: ["倾倒综合征", "术后并发症", "饮食管理", "低血糖", "阿卡波糖"]
+    },
+    {
+      cancerType: "esophageal", category: "guideline",
+      title: "化疗患者PICC导管与输液港日常维护指南",
+      titleEn: "PICC Line and Implanted Port Care Guidelines for Chemotherapy Patients",
+      source: "INS 9th Edition / WS/T 433-2023", authors: "Gorski LA, et al.", year: 2024,
+      summary: "化疗患者中心静脉通路以PICC和输液港(PORT)为主。PICC需每周维护1次(冲封管+换敷料),输液港治疗间歇期每4周维护1次。透明敷料每7天更换,含氯己定敷料可降低导管相关血流感染。患者需掌握血栓、感染预警信号。",
+      keyPoints: ["PICC每7天冲封管1次(10mL生理盐水脉冲式)", "透明敷料每7天更换,潮湿松脱时随时换", "血栓预警:置管侧手臂肿胀疼痛发紫、回抽无回血", "感染预警:穿刺点红肿有脓性分泌物、体温>38°C", "避免置管侧提重物(>3kg)和剧烈运动"],
+      evidenceLevel: "2A", url: "",
+      tags: ["PICC", "输液港", "导管维护", "血栓", "感染", "化疗"]
     }
   ];
 
@@ -354,7 +487,117 @@ function seedKnowledge(db) {
   }
 }
 
+function ensureMigrations(db) {
+  try { db.exec("ALTER TABLE patients ADD COLUMN cancer_type TEXT NOT NULL DEFAULT 'esophageal'"); } catch { /* column already exists */ }
+}
+
+function seedClinicalDefaults(db) {
+  const existing = get(db, "SELECT id FROM clinical_defaults LIMIT 1");
+  if (existing) return;
+
+  const defaults = [
+    // --- Chinese ---
+    {
+      cancerType: "esophageal", category: "nutrition", language: "zh-CN",
+      mustDo: ["术后遵医嘱分阶段过渡饮食", "坚持少量多餐每日6-8次", "保证高蛋白高热量摄入", "每周监测体重并记录", "进食时保持坐位或半卧位"],
+      mustAvoid: ["禁食过硬过烫刺激性食物", "避免餐后立即平卧", "切勿自行断停肠内营养", "禁止饮酒及碳酸饮料"],
+      redFlags: ["进食后反复呕吐无法进食", "体重两周内下降超过3公斤", "吞咽时剧烈胸痛或发热"],
+      faq: [{ q: "术后多久能正常吃饭？", a: "一般需3-6个月逐步过渡，从流食到半流食再到软食。" }, { q: "需要吃营养补充剂吗？", a: "建议在医生指导下补充口服营养补充剂(ONS)。" }, { q: "出现倾倒综合征怎么办？", a: "减少单次进食量并避免高糖食物，及时告知医生。" }]
+    },
+    {
+      cancerType: "esophageal", category: "rehabilitation", language: "zh-CN",
+      mustDo: ["术后尽早下床活动", "每日进行深呼吸及咳嗽训练", "遵医嘱进行吞咽功能训练", "保持适度有氧运动如散步", "主动寻求心理支持与疏导"],
+      mustAvoid: ["避免术后长期卧床不动", "禁止未经评估的剧烈运动", "切勿忽视吞咽困难症状"],
+      redFlags: ["活动后严重气促或胸痛", "吞咽时反复呛咳或误吸", "持续情绪低落超过两周"],
+      faq: [{ q: "术后什么时候可以运动？", a: "术后第1天即可下床，出院后从散步开始逐步增加。" }, { q: "吞咽训练怎么做？", a: "在康复师指导下进行空吞咽和体位调整训练。" }]
+    },
+    {
+      cancerType: "esophageal", category: "guideline", language: "zh-CN",
+      mustDo: ["术后前2年每3个月复查一次", "第3-5年每6个月复查一次", "按时完成CT及血液检查", "保留所有检查报告便于对比"],
+      mustAvoid: ["切勿自行延长复查间隔", "不要忽略医生建议的检查项目", "避免仅凭自我感觉判断病情"],
+      redFlags: ["复查发现肿瘤标志物持续升高", "出现新发吞咽困难或声音嘶哑", "不明原因持续疼痛或消瘦"],
+      faq: [{ q: "需要随访多少年？", a: "至少5年，之后每年一次，建议终身关注健康。" }, { q: "每次随访做哪些检查？", a: "通常包括体检、血液检查、胸腹CT；内镜按医嘱安排。" }]
+    },
+    {
+      cancerType: "esophageal", category: "regimen", language: "zh-CN",
+      mustDo: ["化疗前后按时检查血常规", "严格遵医嘱服用止吐药物", "每日监测体温并记录", "保持口腔清洁预防口腔炎", "及时向医生报告副作用"],
+      mustAvoid: ["禁止自行调整药物剂量", "化疗期间避免接触感染源", "切勿隐瞒不适症状不报告"],
+      redFlags: ["体温超过38°C或伴寒战", "出血不止或皮肤大面积瘀斑", "严重腹泻或呕吐致无法进食", "手脚严重麻木影响日常活动"],
+      faq: [{ q: "化疗后白细胞低怎么办？", a: "遵医嘱注射升白针，注意防护避免感染。" }, { q: "恶心呕吐如何缓解？", a: "按时服用止吐药，少量多餐，避免油腻食物。" }]
+    },
+    {
+      cancerType: "esophageal", category: "staging", language: "zh-CN",
+      mustDo: ["了解自己的病理分期报告", "向医生确认TNM各代表什么", "理解分期对治疗方案的影响", "保存完整的病理报告原件"],
+      mustAvoid: ["勿仅凭网络信息自行判断预后", "避免与其他患者直接比较分期", "切勿因分期结果放弃治疗"],
+      redFlags: ["病理报告结果与临床不一致", "分期评估后出现新发症状"],
+      faq: [{ q: "TNM分期是什么意思？", a: "T代表肿瘤深度，N代表淋巴结转移，M代表远处转移。" }, { q: "分期能决定能不能治好吗？", a: "分期是制定方案的依据，但不能完全决定预后。" }]
+    },
+    {
+      cancerType: "esophageal", category: "trial", language: "zh-CN",
+      mustDo: ["充分阅读并理解知情同意书", "了解试验目的及可能的风险", "知晓可随时无条件退出试验", "按方案要求完成随访和检查"],
+      mustAvoid: ["未签知情同意书前不要入组", "不要隐瞒既往病史和用药情况", "切勿自行合并使用其他药物"],
+      redFlags: ["试验期间出现严重不良反应", "感觉权益受损或被施压参与"],
+      faq: [{ q: "参加临床试验安全吗？", a: "经伦理审批有严格监管，可随时退出，权益受法律保护。" }, { q: "如果分到对照组怎么办？", a: "对照组也接受当前标准治疗，不会用安慰剂替代。" }]
+    },
+    // --- English ---
+    {
+      cancerType: "esophageal", category: "nutrition", language: "en",
+      mustDo: ["Progress diet in stages per doctor's orders", "Eat small frequent meals, 6-8 times daily", "Ensure high-protein, high-calorie intake", "Monitor and record weight weekly", "Stay upright while eating"],
+      mustAvoid: ["Avoid hard, very hot, or irritating foods", "Do not lie flat immediately after meals", "Never stop enteral nutrition without advice", "No alcohol or carbonated beverages"],
+      redFlags: ["Repeated vomiting and inability to eat", "Weight loss over 3kg in two weeks", "Severe chest pain or fever when swallowing"],
+      faq: [{ q: "When can I eat normally after surgery?", a: "Usually 3-6 months, progressing from liquids to soft foods." }, { q: "Do I need nutritional supplements?", a: "Oral nutritional supplements (ONS) are recommended under guidance." }]
+    },
+    {
+      cancerType: "esophageal", category: "rehabilitation", language: "en",
+      mustDo: ["Get out of bed as early as possible post-op", "Practice deep breathing and coughing daily", "Follow prescribed swallowing rehab exercises", "Maintain light aerobic activity like walking", "Actively seek psychological support"],
+      mustAvoid: ["Avoid prolonged bed rest after surgery", "No vigorous exercise without assessment", "Do not ignore swallowing difficulties"],
+      redFlags: ["Severe breathlessness or chest pain on activity", "Repeated choking or aspiration when swallowing", "Persistent low mood lasting over two weeks"],
+      faq: [{ q: "When can I start exercising?", a: "Assisted mobilization from day 1; systematic exercise from 4 weeks post-discharge." }, { q: "How do I practice swallowing rehab?", a: "Under therapist guidance: dry swallows and postural adjustments." }]
+    },
+    {
+      cancerType: "esophageal", category: "guideline", language: "en",
+      mustDo: ["Follow up every 3 months for the first 2 years", "Follow up every 6 months for years 3-5", "Complete CT scans and blood tests on schedule", "Keep all test reports for comparison"],
+      mustAvoid: ["Never extend follow-up intervals on your own", "Do not skip doctor-recommended tests", "Avoid judging condition by symptoms alone"],
+      redFlags: ["Tumor markers rising on consecutive tests", "New-onset dysphagia or hoarseness", "Unexplained persistent pain or weight loss"],
+      faq: [{ q: "How many years of follow-up?", a: "At least 5 years, then annual. Lifelong awareness advised." }, { q: "What tests at each visit?", a: "Physical exam, blood work, chest/abdominal CT; endoscopy as indicated." }]
+    },
+    {
+      cancerType: "esophageal", category: "regimen", language: "en",
+      mustDo: ["Get blood counts checked before and after chemo", "Take anti-nausea meds exactly as prescribed", "Monitor and record body temperature daily", "Maintain oral hygiene to prevent mucositis", "Report side effects promptly"],
+      mustAvoid: ["Never adjust drug doses on your own", "Avoid infection exposure during chemo", "Do not hide or delay reporting symptoms"],
+      redFlags: ["Fever above 38°C or chills", "Uncontrolled bleeding or large bruises", "Severe diarrhea/vomiting preventing eating", "Severe numbness affecting daily function"],
+      faq: [{ q: "What if my white blood cells are low?", a: "G-CSF injections as prescribed; take infection precautions." }, { q: "How can I manage nausea?", a: "Take antiemetics on schedule, eat small frequent meals, avoid greasy foods." }]
+    },
+    {
+      cancerType: "esophageal", category: "staging", language: "en",
+      mustDo: ["Learn and understand your pathology staging", "Ask your doctor what T, N, M each means", "Understand how staging affects treatment", "Keep original copies of pathology reports"],
+      mustAvoid: ["Do not self-interpret prognosis from the internet", "Avoid comparing staging with other patients", "Never give up treatment based on staging alone"],
+      redFlags: ["Pathology inconsistent with clinical findings", "New symptoms after staging workup"],
+      faq: [{ q: "What does TNM staging mean?", a: "T = tumor depth, N = lymph node involvement, M = distant metastasis." }, { q: "Does staging determine if I can be cured?", a: "Staging guides treatment but does not solely determine outcome." }]
+    },
+    {
+      cancerType: "esophageal", category: "trial", language: "en",
+      mustDo: ["Read and fully understand informed consent", "Know the trial purpose and possible risks", "Know you can withdraw at any time freely", "Complete all follow-up visits per protocol"],
+      mustAvoid: ["Do not enroll before signing informed consent", "Do not conceal medical history or medications", "Never take other drugs without telling the team"],
+      redFlags: ["Severe adverse reactions during the trial", "Feeling pressured or rights being violated"],
+      faq: [{ q: "Is it safe to join a clinical trial?", a: "Trials are IRB-approved with strict oversight; you may withdraw anytime." }, { q: "What if I'm in the control group?", a: "Control group receives standard treatment; no placebo replaces effective therapy." }]
+    }
+  ];
+
+  for (const d of defaults) {
+    run(db, `INSERT INTO clinical_defaults (cancer_type, category, must_do_json, must_avoid_json, red_flags_json, faq_json, language)
+             VALUES (:cancerType, :category, :mustDoJson, :mustAvoidJson, :redFlagsJson, :faqJson, :language)`, {
+      cancerType: d.cancerType, category: d.category,
+      mustDoJson: toJson(d.mustDo), mustAvoidJson: toJson(d.mustAvoid),
+      redFlagsJson: toJson(d.redFlags), faqJson: toJson(d.faq),
+      language: d.language
+    });
+  }
+}
+
 export function seedDatabase(db) {
+  ensureMigrations(db);
+
   const adminId = seedUser(db, {
     username: "admin",
     displayName: "Platform Admin",
@@ -381,6 +624,9 @@ export function seedDatabase(db) {
 
   // Seed esophageal cancer knowledge base
   seedKnowledge(db);
+
+  // Seed clinical action defaults (evidence-based must_do/must_avoid/red_flags per category)
+  seedClinicalDefaults(db);
 
   const existingSchema = get(db, "SELECT id FROM schemas WHERE slug = :slug", {
     slug: "clinical-education-prescription"

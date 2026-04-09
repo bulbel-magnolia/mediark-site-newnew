@@ -84,11 +84,27 @@ export function extractJsonObject(text) {
 }
 
 export function buildTextRefinementPrompt({ patient, formInput, evidence, draftMasterJson }) {
+  const evidenceForPrompt = (evidence || []).map((e) => ({
+    id: e.id,
+    title: e.title,
+    source: e.source,
+    year: e.year,
+    evidence_level: e.evidence_level,
+    summary: e.summary || e.claim || "",
+    key_points: e.key_points || []
+  }));
+
   return [
     "You are a clinician-in-the-loop patient education copy assistant.",
     "Return one JSON object only. No markdown fences.",
-    "Keep the writing clinically conservative, easy to understand, and suitable for patient education.",
-    "Do not add treatment recommendations beyond the provided context.",
+    "",
+    "GROUNDING RULES (strictly follow):",
+    "1. Base ALL clinical statements on the provided evidence bundle below.",
+    "2. Every item in must_know, must_do, must_avoid, and red_flags MUST be traceable to at least one evidence entry.",
+    "3. If the evidence bundle does not cover a requested topic, write \"该主题需进一步临床审核\" instead of generating unsupported content.",
+    "4. Do NOT add treatment recommendations, drug names, or dosing beyond what appears in the evidence.",
+    "5. Keep the writing clinically conservative, easy to understand, and suitable for patient education.",
+    "6. In the doctor_review_note field, list which evidence IDs (e.g. KB-9, KB-11) informed the content.",
     "",
     "Patient:",
     JSON.stringify({
@@ -101,8 +117,8 @@ export function buildTextRefinementPrompt({ patient, formInput, evidence, draftM
     "Form input:",
     JSON.stringify(formInput || {}, null, 2),
     "",
-    "Evidence bundle:",
-    JSON.stringify(evidence || [], null, 2),
+    "Evidence bundle (use ONLY these sources for clinical content):",
+    JSON.stringify(evidenceForPrompt, null, 2),
     "",
     "Draft master JSON:",
     JSON.stringify(draftMasterJson || {}, null, 2),
@@ -129,6 +145,13 @@ export function buildTextRefinementPrompt({ patient, formInput, evidence, draftM
         red_flags: ["", "", ""],
         footer_badge: "",
         source_tag: ""
+      },
+      evidence_citations: {
+        clinical_summary: ["KB-X"],
+        must_know: ["KB-X"],
+        must_do: ["KB-X"],
+        must_avoid: ["KB-X"],
+        red_flags: ["KB-X"]
       }
     }, null, 2)
   ].join("\n");
@@ -167,6 +190,10 @@ export function applyCopyRefinement(masterJson, refinement = {}) {
 
   if (redFlags.length) {
     clinicalCore.red_flags = redFlags;
+  }
+
+  if (refinement.evidence_citations && typeof refinement.evidence_citations === "object") {
+    clinicalCore.evidence_citations = refinement.evidence_citations;
   }
 
   const copyOverride = refinement.copy_master || {};

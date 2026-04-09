@@ -1,6 +1,7 @@
 import express from "express";
 
 import { all, get, run, nowIso, toJson, fromJson } from "../db.js";
+import { inferCancerType } from "../lib/cancer-type-resolver.js";
 
 export function createPatientsRouter({ db, auth }) {
   const router = express.Router();
@@ -21,6 +22,7 @@ export function createPatientsRouter({ db, auth }) {
         name: row.name,
         diagnosis: row.diagnosis,
         stage: row.stage,
+        cancerType: row.cancer_type || "esophageal",
         tags: fromJson(row.tags_json, []),
         notes: row.notes,
         createdAt: row.created_at,
@@ -47,6 +49,7 @@ export function createPatientsRouter({ db, auth }) {
         name: row.name,
         diagnosis: row.diagnosis,
         stage: row.stage,
+        cancerType: row.cancer_type || "esophageal",
         tags: fromJson(row.tags_json, []),
         notes: row.notes,
         createdAt: row.created_at,
@@ -63,14 +66,18 @@ export function createPatientsRouter({ db, auth }) {
       return res.status(400).json({ error: "Patient name is required." });
     }
 
+    const diagnosis = String(req.body?.diagnosis || "").trim();
+    const cancerType = String(req.body?.cancerType || "").trim() || inferCancerType(diagnosis);
+
     const result = run(
       db,
-      `INSERT INTO patients (name, diagnosis, stage, tags_json, notes, created_by)
-       VALUES (:name, :diagnosis, :stage, :tagsJson, :notes, :createdBy)`,
+      `INSERT INTO patients (name, diagnosis, stage, cancer_type, tags_json, notes, created_by)
+       VALUES (:name, :diagnosis, :stage, :cancerType, :tagsJson, :notes, :createdBy)`,
       {
         name,
-        diagnosis: String(req.body?.diagnosis || "").trim(),
+        diagnosis,
         stage: String(req.body?.stage || "").trim(),
+        cancerType,
         tagsJson: toJson(Array.isArray(req.body?.tags) ? req.body.tags : []),
         notes: String(req.body?.notes || "").trim(),
         createdBy: req.auth.user.id
@@ -97,7 +104,12 @@ export function createPatientsRouter({ db, auth }) {
     const params = { id: row.id, updatedAt: nowIso() };
 
     if (req.body?.name !== undefined) { updates.push("name = :name"); params.name = String(req.body.name).trim(); }
-    if (req.body?.diagnosis !== undefined) { updates.push("diagnosis = :diagnosis"); params.diagnosis = String(req.body.diagnosis).trim(); }
+    if (req.body?.diagnosis !== undefined) {
+      updates.push("diagnosis = :diagnosis");
+      params.diagnosis = String(req.body.diagnosis).trim();
+      updates.push("cancer_type = :cancerType");
+      params.cancerType = String(req.body?.cancerType || "").trim() || inferCancerType(params.diagnosis);
+    }
     if (req.body?.stage !== undefined) { updates.push("stage = :stage"); params.stage = String(req.body.stage).trim(); }
     if (req.body?.tags !== undefined) { updates.push("tags_json = :tagsJson"); params.tagsJson = toJson(Array.isArray(req.body.tags) ? req.body.tags : []); }
     if (req.body?.notes !== undefined) { updates.push("notes = :notes"); params.notes = String(req.body.notes).trim(); }

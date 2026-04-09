@@ -34,25 +34,45 @@ const EVIDENCE_LIBRARY = {
     id: "E1",
     title: "术后饮食指导",
     source: "团队指南摘录",
-    claim: "少量多餐，避免过热、过硬和过快进食。"
+    claim: "少量多餐，避免过热、过硬和过快进食。",
+    summary: "少量多餐，避免过热、过硬和过快进食。",
+    key_points: ["少量多餐", "避免过热过硬食物", "细嚼慢咽"],
+    evidence_level: "",
+    year: null,
+    category: "nutrition"
   },
   "吞咽训练": {
     id: "E2",
     title: "吞咽训练原则",
     source: "团队审核内容",
-    claim: "吞咽训练应循序渐进，并观察是否出现疼痛或明显梗阻感。"
+    claim: "吞咽训练应循序渐进，并观察是否出现疼痛或明显梗阻感。",
+    summary: "吞咽训练应循序渐进，并观察是否出现疼痛或明显梗阻感。",
+    key_points: ["循序渐进训练", "注意疼痛和梗阻感", "必要时咨询康复科"],
+    evidence_level: "",
+    year: null,
+    category: "rehabilitation"
   },
   "危险信号": {
     id: "E3",
     title: "危险信号识别",
     source: "团队审核内容",
-    claim: "持续呕吐、剧烈胸痛、无法进食等情况需要及时联系医生。"
+    claim: "持续呕吐、剧烈胸痛、无法进食等情况需要及时联系医生。",
+    summary: "持续呕吐、剧烈胸痛、无法进食等情况需要及时联系医生。",
+    key_points: ["持续呕吐需就医", "剧烈胸痛需急诊", "无法进食需就医"],
+    evidence_level: "",
+    year: null,
+    category: "rehabilitation"
   },
   "心理支持": {
     id: "E4",
     title: "焦虑沟通建议",
     source: "团队沟通手册",
-    claim: "恢复期沟通应使用具体、短句、可执行的表达，并允许家属共同接收信息。"
+    claim: "恢复期沟通应使用具体、短句、可执行的表达，并允许家属共同接收信息。",
+    summary: "恢复期沟通应使用具体、短句、可执行的表达，并允许家属共同接收信息。",
+    key_points: ["使用简短可执行的表达", "允许家属共同参与", "关注患者焦虑情绪"],
+    evidence_level: "",
+    year: null,
+    category: "rehabilitation"
   }
 };
 
