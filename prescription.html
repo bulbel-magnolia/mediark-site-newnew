@@ -227,69 +227,81 @@
                 <!-- 生成状态摘要（动态生成） -->
                 <div id="gen-status-bar" class="hidden mb-6 grid grid-cols-2 md:grid-cols-4 gap-3"></div>
 
-                <!-- 主内容：左侧结构化文本 + 右侧资产预览 -->
-                <div id="gen-result" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    <!-- 左侧：结构化内容 (3/5) -->
-                    <div class="lg:col-span-3 space-y-4">
-                        <!-- 临床核心 -->
+                <!-- 主内容：按钮切换面板 -->
+                <div id="gen-result" class="hidden max-w-5xl mx-auto space-y-4">
+
+                    <!-- 模态切换按钮行 -->
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="switchPanel('text')" data-panel="text" class="panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-blue-600 text-white">
+                            <i class="fa-solid fa-file-lines"></i> 文案内容
+                        </button>
+                        <button onclick="switchPanel('poster')" data-panel="poster" class="panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-slate-100 text-slate-600 hover:bg-slate-200">
+                            <i class="fa-solid fa-image"></i> 海报
+                        </button>
+                        <button onclick="switchPanel('image')" data-panel="image" class="panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-slate-100 text-slate-600 hover:bg-slate-200">
+                            <i class="fa-solid fa-images"></i> 图片
+                        </button>
+                        <button onclick="switchPanel('video')" data-panel="video" class="panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-slate-100 text-slate-600 hover:bg-slate-200">
+                            <i class="fa-solid fa-film"></i> 视频
+                        </button>
+                    </div>
+
+                    <!-- 文案面板（默认显示） -->
+                    <div id="panel-text" class="gen-panel">
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white flex items-center gap-2">
                                 <i class="fa-solid fa-robot text-blue-600"></i>
-                                <span class="font-bold text-blue-800">AI 生成内容 (Master JSON)</span>
+                                <span class="font-bold text-blue-800">AI 生成文案</span>
+                                <span id="text-error-hint" class="hidden ml-auto text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded"></span>
                             </div>
                             <div id="ai-text-area" class="p-5 text-sm text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto"></div>
                         </div>
-                        <!-- 修改意见 -->
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-user-doctor text-blue-600 mr-1"></i> 专家审核</span>
-                            </div>
-                            <textarea id="feedback-input" rows="2" class="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 text-sm resize-none" placeholder="如有修改意见请输入，然后点击重新生成..."></textarea>
-                            <div class="flex gap-3 mt-3">
-                                <button onclick="regenerateContent()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700 transition"><i class="fa-solid fa-rotate"></i> 重新生成</button>
-                                <button id="btn-approve" onclick="goToStep3()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                    <i class="fa-solid fa-check mr-1"></i> 确认无误，发布处方
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- 右侧：资产预览 (2/5) -->
-                    <div class="lg:col-span-2 space-y-4">
-                        <!-- 海报预览 -->
-                        <div id="poster-preview-card" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <!-- 海报面板 -->
+                    <div id="panel-poster" class="gen-panel hidden">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-3 border-b border-slate-100 flex items-center gap-2 bg-purple-50">
                                 <i class="fa-solid fa-image text-purple-600"></i>
                                 <span class="font-bold text-purple-800 text-sm">海报预览</span>
                             </div>
-                            <div id="poster-preview" class="p-3">
-                                <div class="bg-slate-100 rounded-lg h-48 flex items-center justify-center text-slate-400">
-                                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> 等待生成...
-                                </div>
-                            </div>
+                            <div id="poster-preview" class="p-4"></div>
                         </div>
-                        <!-- 图片资产 -->
-                        <div id="images-preview-card" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    </div>
+
+                    <!-- 图片面板 -->
+                    <div id="panel-image" class="gen-panel hidden">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-3 border-b border-slate-100 flex items-center gap-2 bg-blue-50">
                                 <i class="fa-solid fa-images text-blue-600"></i>
                                 <span class="font-bold text-blue-800 text-sm">生成图片</span>
                             </div>
-                            <div id="images-preview" class="p-3 grid grid-cols-2 gap-2">
-                                <div class="bg-slate-100 rounded h-24 flex items-center justify-center text-slate-400 text-xs">hero_image</div>
-                                <div class="bg-slate-100 rounded h-24 flex items-center justify-center text-slate-400 text-xs">scene_ref</div>
-                            </div>
+                            <div id="images-preview" class="p-4 grid grid-cols-2 gap-3"></div>
                         </div>
-                        <!-- 视频资产 -->
-                        <div id="video-preview-card" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    </div>
+
+                    <!-- 视频面板 -->
+                    <div id="panel-video" class="gen-panel hidden">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-3 border-b border-slate-100 flex items-center gap-2 bg-orange-50">
                                 <i class="fa-solid fa-film text-orange-600"></i>
                                 <span class="font-bold text-orange-800 text-sm">生成视频</span>
                             </div>
-                            <div id="video-preview" class="p-3">
-                                <div class="bg-slate-800 rounded-lg h-32 flex items-center justify-center text-slate-400">
-                                    <i class="fa-solid fa-play text-2xl"></i>
-                                </div>
-                            </div>
+                            <div id="video-preview" class="p-4"></div>
+                        </div>
+                    </div>
+
+                    <!-- 审核操作（始终显示） -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-user-doctor text-blue-600 mr-1"></i> 专家审核</span>
+                        </div>
+                        <textarea id="feedback-input" rows="2" class="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 text-sm resize-none" placeholder="如有修改意见请输入，然后点击重新生成..."></textarea>
+                        <div class="flex gap-3 mt-3">
+                            <button onclick="regenerateContent()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700 transition"><i class="fa-solid fa-rotate"></i> 重新生成</button>
+                            <button id="btn-approve" onclick="goToStep3()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                <i class="fa-solid fa-check mr-1"></i> 确认无误，发布处方
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -658,6 +670,22 @@
         if (el) el.textContent = label(status.poster_render);
     }
 
+    // === 面板切换 ===
+    function switchPanel(name) {
+        document.querySelectorAll('.gen-panel').forEach(function(el) { el.classList.add('hidden'); });
+        var target = document.getElementById('panel-' + name);
+        if (target) target.classList.remove('hidden');
+
+        document.querySelectorAll('.panel-btn').forEach(function(btn) {
+            if (btn.disabled) return; // 保持禁用按钮灰色
+            if (btn.dataset.panel === name) {
+                btn.className = 'panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-blue-600 text-white';
+            } else {
+                btn.className = 'panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-slate-100 text-slate-600 hover:bg-slate-200';
+            }
+        });
+    }
+
     // === 视频自动轮询 ===
     var _videoAutoTimer = null;
     function startVideoAutoPolling(taskId) {
@@ -760,35 +788,38 @@
         clearInterval(interval);
         loader.style.display = 'none';
         genResult.classList.remove('hidden');
+        statusBar.classList.add('hidden'); // 不再需要顶部状态栏
 
-        // 获取当前勾选的格式
+        // 获取当前勾选的格式，设置按钮状态
         var selectedFormats = [];
         document.querySelectorAll('#output-formats input[type="checkbox"]:checked').forEach(function(cb) { selectedFormats.push(cb.value); });
         var hasPoster = selectedFormats.indexOf('poster') >= 0;
         var hasImage = selectedFormats.indexOf('image') >= 0;
         var hasVideo = selectedFormats.indexOf('video') >= 0;
 
-        // 动态生成状态栏（仅显示选中格式）
-        var statusHtml = '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-file-code text-blue-500"></i><div><p class="text-xs text-slate-500">文案生成</p><p id="status-text" class="text-sm font-semibold text-slate-800">--</p></div></div>';
-        if (hasImage || hasPoster) statusHtml += '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-image text-purple-500"></i><div><p class="text-xs text-slate-500">图片生成</p><p id="status-image" class="text-sm font-semibold text-slate-800">--</p></div></div>';
-        if (hasVideo) statusHtml += '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-video text-orange-500"></i><div><p class="text-xs text-slate-500">视频生成</p><p id="status-video" class="text-sm font-semibold text-slate-800">--</p></div></div>';
-        if (hasPoster) statusHtml += '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-image text-green-500"></i><div><p class="text-xs text-slate-500">海报渲染</p><p id="status-poster" class="text-sm font-semibold text-slate-800">--</p></div></div>';
-        statusBar.innerHTML = statusHtml;
-        statusBar.classList.remove('hidden');
-
-        // 显隐右侧预览区
-        var posterCard = document.getElementById('poster-preview-card');
-        var imagesCard = document.getElementById('images-preview-card');
-        var videoCard = document.getElementById('video-preview-card');
-        if (posterCard) posterCard.style.display = hasPoster ? '' : 'none';
-        if (imagesCard) imagesCard.style.display = (hasImage || hasPoster) ? '' : 'none';
-        if (videoCard) videoCard.style.display = hasVideo ? '' : 'none';
+        // 设置按钮启用/禁用状态
+        document.querySelectorAll('.panel-btn').forEach(function(btn) {
+            var p = btn.dataset.panel;
+            var enabled = p === 'text' || (p === 'poster' && hasPoster) || (p === 'image' && (hasImage || hasPoster)) || (p === 'video' && hasVideo);
+            btn.disabled = !enabled;
+            if (!enabled) {
+                btn.className = 'panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-slate-50 text-slate-300 cursor-not-allowed';
+            }
+        });
 
         if (masterJson) {
             textArea.innerHTML = renderMasterContent(masterJson);
-            renderStatus(masterJson, diagnostics);
             renderAssets(masterJson, work);
+
+            // 如果 LLM 降级了，显示提示
+            if (masterJson._textError) {
+                var hint = document.getElementById('text-error-hint');
+                if (hint) { hint.textContent = 'LLM 降级: ' + masterJson._textError; hint.classList.remove('hidden'); }
+            }
         }
+
+        // 默认显示文案面板
+        switchPanel('text');
 
         btnApprove.disabled = false;
         btnApprove.classList.remove('opacity-50', 'cursor-not-allowed');

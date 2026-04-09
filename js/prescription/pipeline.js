@@ -203,10 +203,12 @@ async function refineMasterJsonIfLive({ masterJson, patient, formInput, evidence
       routeStatus: "ready"
     };
   } catch (error) {
-    console.warn("Text refinement fell back to deterministic draft.", error);
+    const msg = String(error?.message || error || "unknown");
+    console.warn("Text refinement fell back to deterministic draft:", msg);
     return {
       masterJson,
-      routeStatus: error?.code === "model_not_found" ? "provider-unavailable" : "fallback"
+      routeStatus: error?.code === "model_not_found" ? "provider-unavailable" : "fallback",
+      errorDetail: msg
     };
   }
 }
@@ -378,6 +380,11 @@ export async function generatePrescriptionBundle({ patient, formInput, runtime =
 
   masterJson.artifacts = artifacts;
   updateStatuses(masterJson, artifacts, mode, textRefinement.routeStatus);
+
+  // 透传 LLM 错误信息到前端（调试用）
+  if (textRefinement.errorDetail) {
+    masterJson._textError = textRefinement.errorDetail;
+  }
 
   const providerRouteStatus = {
     text_master: textRefinement.routeStatus,
