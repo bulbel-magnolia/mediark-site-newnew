@@ -148,10 +148,14 @@ function resolveImagePath(data = {}) {
 
 function resolveImageSize(asset = {}) {
   if (asset.aspect_ratio === "16:9") {
-    return "2560x1440";
+    return "16:9";
   }
 
-  return "1728x2160";
+  if (asset.aspect_ratio === "4:5") {
+    return "3:4";
+  }
+
+  return "1:1";
 }
 
 function normalizeDurationSec(value) {
@@ -430,7 +434,7 @@ export async function requestVideoGeneration({
 
 export async function requestImageGeneration({ provider, asset, fetchImpl }) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
+  const timeout = setTimeout(() => controller.abort(), 120000);
 
   let response;
   try {
@@ -443,7 +447,9 @@ export async function requestImageGeneration({ provider, asset, fetchImpl }) {
       body: JSON.stringify({
         model: provider.model,
         prompt: asset.prompt,
-        size: resolveImageSize(asset)
+        size: resolveImageSize(asset),
+        response_format: "url",
+        watermark: false
       }),
       signal: controller.signal
     });
