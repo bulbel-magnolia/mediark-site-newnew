@@ -301,7 +301,7 @@
                         </div>
                         <textarea id="feedback-input" rows="2" class="w-full border border-slate-200 rounded-lg p-3 bg-slate-50 text-sm resize-none" placeholder="如有修改意见请输入，然后点击重新生成..."></textarea>
                         <div class="flex gap-3 mt-3">
-                            <button onclick="regenerateContent()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700 transition"><i class="fa-solid fa-rotate"></i> 重新生成</button>
+                            <button onclick="goBackToStep1()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-200 transition border border-slate-200"><i class="fa-solid fa-arrow-left"></i> 返回修改</button>
                             <button id="btn-approve" onclick="goToStep3()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                                 <i class="fa-solid fa-check mr-1"></i> 确认无误，发布处方
                             </button>
@@ -638,11 +638,30 @@
         var posterPayload = version ? version.posterPayload : null;
         var posterEl = document.getElementById('poster-preview');
         if (posterPayload) {
-            posterEl.innerHTML = '<div class="bg-gradient-to-br from-blue-50 to-slate-50 rounded-lg p-4 text-xs space-y-2">' +
-                '<p class="font-bold text-blue-900 text-sm">' + (posterPayload.title || '') + '</p>' +
-                '<p class="text-slate-600">' + (posterPayload.subtitle || '') + '</p>' +
-                (posterPayload.keyPoints ? '<div class="space-y-1">' + posterPayload.keyPoints.map(function(p) { return '<div class="flex gap-1"><i class="fa-solid fa-check text-green-500 mt-0.5"></i><span>' + p + '</span></div>'; }).join('') + '</div>' : '') +
-                '</div>';
+            var heroSrc = posterPayload.heroImage || '';
+            var heroHtml = heroSrc && (heroSrc.startsWith('http') || heroSrc.startsWith('data:'))
+                ? '<img src="' + heroSrc + '" alt="' + posterPayload.title + '" class="h-full w-full object-cover">'
+                : '<div class="h-full w-full flex items-center justify-center text-slate-300 bg-gradient-to-br from-blue-100 to-purple-100"><i class="fa-solid fa-image text-5xl"></i></div>';
+            var kpHtml = (posterPayload.keyPoints || []).map(function(p) { return '<li class="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-900">' + p + '</li>'; }).join('');
+            var doHtml = (posterPayload.doList || []).map(function(p) { return '<li class="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900"><i class="fa-solid fa-check text-emerald-500 mr-1"></i>' + p + '</li>'; }).join('');
+            var dontHtml = (posterPayload.dontList || []).map(function(p) { return '<li class="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900"><i class="fa-solid fa-xmark text-amber-500 mr-1"></i>' + p + '</li>'; }).join('');
+            var rfHtml = (posterPayload.redFlags || []).map(function(p) { return '<span class="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">' + p + '</span>'; }).join('');
+            posterEl.innerHTML =
+                '<section class="rounded-2xl overflow-hidden bg-white shadow-xl border border-slate-200">' +
+                '<div class="grid md:grid-cols-[1.2fr_1fr]">' +
+                '<div class="min-h-[300px] bg-slate-100">' + heroHtml + '</div>' +
+                '<div class="p-6 bg-gradient-to-b from-white to-slate-50 space-y-4">' +
+                '<p class="text-xs font-semibold uppercase tracking-widest text-blue-700">' + (posterPayload.footer && posterPayload.footer.sourceTag || '') + '</p>' +
+                '<h2 class="text-2xl font-bold text-slate-900">' + (posterPayload.title || '') + '</h2>' +
+                '<p class="text-sm text-slate-500">' + (posterPayload.subtitle || '') + '</p>' +
+                (kpHtml ? '<div><h3 class="text-sm font-semibold text-slate-800 mb-2">重点提醒</h3><ul class="space-y-2">' + kpHtml + '</ul></div>' : '') +
+                '<div class="grid grid-cols-2 gap-3">' +
+                (doHtml ? '<div><h3 class="text-sm font-semibold text-slate-800 mb-2">建议这样做</h3><ul class="space-y-1.5">' + doHtml + '</ul></div>' : '') +
+                (dontHtml ? '<div><h3 class="text-sm font-semibold text-slate-800 mb-2">尽量避免</h3><ul class="space-y-1.5">' + dontHtml + '</ul></div>' : '') +
+                '</div>' +
+                (rfHtml ? '<div><h3 class="text-sm font-semibold text-slate-800 mb-2">危险信号</h3><div class="flex flex-wrap gap-2">' + rfHtml + '</div></div>' : '') +
+                '<div class="inline-flex rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">' + (posterPayload.footer && posterPayload.footer.badge || '') + '</div>' +
+                '</div></div></section>';
         } else if (posterHtml) {
             posterEl.innerHTML = posterHtml;
         } else {
@@ -803,10 +822,12 @@
         // 设置按钮启用/禁用状态
         document.querySelectorAll('.panel-btn').forEach(function(btn) {
             var p = btn.dataset.panel;
-            var enabled = p === 'text' || (p === 'poster' && hasPoster) || (p === 'image' && (hasImage || hasPoster)) || (p === 'video' && hasVideo);
+            var enabled = p === 'text' || (p === 'poster' && hasPoster) || (p === 'image' && hasImage) || (p === 'video' && hasVideo);
             btn.disabled = !enabled;
             if (!enabled) {
-                btn.className = 'panel-btn px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition shadow-sm bg-slate-50 text-slate-300 cursor-not-allowed';
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
             }
         });
 
@@ -855,7 +876,13 @@
         }
     };
 
-    function regenerateContent() { runGeneration(true); }
+    function goBackToStep1() {
+        if (_videoAutoTimer) { clearInterval(_videoAutoTimer); _videoAutoTimer = null; }
+        document.getElementById('step-2-content').classList.add('hidden');
+        document.getElementById('gen-mode-banner').classList.add('hidden');
+        document.getElementById('step-1-content').classList.remove('hidden');
+        setStepActive(1);
+    }
 
     function toggleLang() {
         currentLang = currentLang === 'zh' ? 'en' : 'zh';

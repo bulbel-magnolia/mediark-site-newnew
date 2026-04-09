@@ -305,35 +305,25 @@
             }
         });
 
-        // --- 初始化：优先从后端 API 获取，失败时 fallback 到静态 JSON ---
-        fetch('/api/library/works', { credentials: 'include' })
-            .then(res => {
-                if (!res.ok) throw new Error('API unavailable');
-                return res.json();
-            })
-            .then(data => {
-                allWorks = data.items || [];
-                renderWorks(allWorks);
-                // 二维码扫码跳转：自动打开指定作品
-                const highlightId = new URLSearchParams(window.location.search).get('highlight');
-                if (highlightId) {
-                    const target = allWorks.find(w => w.id == highlightId);
-                    if (target) { setTimeout(() => openModal(target), 500); }
-                }
-            })
-            .catch(() => {
-                // Fallback: 读取静态 works.json
-                fetch('works.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        allWorks = data;
-                        renderWorks(allWorks);
-                    })
-                    .catch(error => {
-                        console.error('加载作品数据时出错:', error);
-                        resultsGrid.innerHTML = '<p class="text-red-500">加载作品库失败，请检查文件。</p>';
-                    });
-            });
+        // --- 初始化：同时加载静态素材库 + API 发布的作品，合并展示 ---
+        Promise.all([
+            fetch('works.json').then(r => r.json()).catch(() => []),
+            fetch('/api/library/works', { credentials: 'include' })
+                .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+                .then(d => d.items || [])
+                .catch(() => [])
+        ]).then(([staticWorks, apiWorks]) => {
+            // API 作品 ID 加前缀避免与静态 ID 冲突
+            apiWorks.forEach(w => { w.id = 'api-' + w.id; });
+            allWorks = [...apiWorks, ...staticWorks];
+            renderWorks(allWorks);
+            // 二维码扫码跳转：自动打开指定作品
+            const highlightId = new URLSearchParams(window.location.search).get('highlight');
+            if (highlightId) {
+                const target = allWorks.find(w => w.id == highlightId || w.id == 'api-' + highlightId);
+                if (target) { setTimeout(() => openModal(target), 500); }
+            }
+        });
 
     }); // DOMContentLoaded 结束
 </script>
