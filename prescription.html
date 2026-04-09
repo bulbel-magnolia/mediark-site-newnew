@@ -221,31 +221,11 @@
                     <div class="mt-4 w-64 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div class="h-full bg-blue-500 animate-progress origin-left" style="width: 100%"></div>
                     </div>
-                    <p class="text-slate-500 text-sm mt-2 font-mono" id="ai-sub-status">Building Master JSON...</p>
+                    <p class="text-slate-500 text-sm mt-2 font-mono" id="ai-sub-status">正在构建知识框架...</p>
                 </div>
 
-                <!-- 运行模式提示 -->
-                <div id="gen-mode-banner" class="hidden mb-4"></div>
-
-                <!-- 生成状态摘要 -->
-                <div id="gen-status-bar" class="hidden mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3">
-                        <i class="fa-solid fa-file-code text-blue-500"></i>
-                        <div><p class="text-xs text-slate-500">Master JSON</p><p id="status-text" class="text-sm font-semibold text-slate-800">--</p></div>
-                    </div>
-                    <div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3">
-                        <i class="fa-solid fa-image text-purple-500"></i>
-                        <div><p class="text-xs text-slate-500">图片生成</p><p id="status-image" class="text-sm font-semibold text-slate-800">--</p></div>
-                    </div>
-                    <div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3">
-                        <i class="fa-solid fa-video text-orange-500"></i>
-                        <div><p class="text-xs text-slate-500">视频生成</p><p id="status-video" class="text-sm font-semibold text-slate-800">--</p></div>
-                    </div>
-                    <div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3">
-                        <i class="fa-solid fa-image text-green-500"></i>
-                        <div><p class="text-xs text-slate-500">海报渲染</p><p id="status-poster" class="text-sm font-semibold text-slate-800">--</p></div>
-                    </div>
-                </div>
+                <!-- 生成状态摘要（动态生成） -->
+                <div id="gen-status-bar" class="hidden mb-6 grid grid-cols-2 md:grid-cols-4 gap-3"></div>
 
                 <!-- 主内容：左侧结构化文本 + 右侧资产预览 -->
                 <div id="gen-result" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -277,7 +257,7 @@
                     <!-- 右侧：资产预览 (2/5) -->
                     <div class="lg:col-span-2 space-y-4">
                         <!-- 海报预览 -->
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div id="poster-preview-card" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-3 border-b border-slate-100 flex items-center gap-2 bg-purple-50">
                                 <i class="fa-solid fa-image text-purple-600"></i>
                                 <span class="font-bold text-purple-800 text-sm">海报预览</span>
@@ -289,7 +269,7 @@
                             </div>
                         </div>
                         <!-- 图片资产 -->
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div id="images-preview-card" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div class="p-3 border-b border-slate-100 flex items-center gap-2 bg-blue-50">
                                 <i class="fa-solid fa-images text-blue-600"></i>
                                 <span class="font-bold text-blue-800 text-sm">生成图片</span>
@@ -658,13 +638,24 @@
     // === 渲染生成状态 ===
     function renderStatus(masterJson, diagnostics) {
         var status = masterJson.status || {};
-        var labels = { 'ready': '已完成', 'generated': '已生成', 'processing': '生成中...', 'queued': '排队中', 'needs-config': '需配置', 'fallback': '降级', 'browser-ready': '就绪' };
+        var labels = {
+            'ready': '已完成', 'generated': '已生成', 'mock-ready': '已完成',
+            'processing': '生成中...', 'queued': '等待中',
+            'needs-config': '未配置', 'fallback': '已完成(本地)', 'configured': '已配置',
+            'browser-ready': '已完成', 'pending': '未选择',
+            'provider-unavailable': '服务不可用', 'generation-failed': '生成失败'
+        };
         function label(s) { return labels[s] || s || '--'; }
 
-        document.getElementById('status-text').textContent = label(status.text_master || (diagnostics && diagnostics.text_master && diagnostics.text_master.status));
-        document.getElementById('status-image').textContent = label(status.image_generation);
-        document.getElementById('status-video').textContent = label(status.video_generation);
-        document.getElementById('status-poster').textContent = label(status.poster_render);
+        var el;
+        el = document.getElementById('status-text');
+        if (el) el.textContent = label(status.text_master || (diagnostics && diagnostics.text_master && diagnostics.text_master.status));
+        el = document.getElementById('status-image');
+        if (el) el.textContent = label(status.image_generation);
+        el = document.getElementById('status-video');
+        if (el) el.textContent = label(status.video_generation);
+        el = document.getElementById('status-poster');
+        if (el) el.textContent = label(status.poster_render);
     }
 
     // === 视频自动轮询 ===
@@ -712,7 +703,7 @@
         genResult.classList.add('hidden');
         if (isRegen) textArea.innerHTML = '';
 
-        var steps = ["Building Master JSON...", "Refining with LLM...", "Generating assets...", "Rendering poster..."];
+        var steps = ["正在构建知识框架...", "AI 大模型文案优化中...", "生成多媒体资产...", "渲染海报..."];
         var si = 0;
         var interval = setInterval(function() { if (si < steps.length) subStatus.innerText = steps[si++]; }, 1200);
 
@@ -768,13 +759,30 @@
         // === 渲染结果 ===
         clearInterval(interval);
         loader.style.display = 'none';
-        statusBar.classList.remove('hidden');
         genResult.classList.remove('hidden');
 
-        // 显示真实 API 成功提示
-        var banner = document.getElementById('gen-mode-banner');
-        banner.classList.remove('hidden');
-        banner.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2 text-sm"><i class="fa-solid fa-circle-check text-green-600"></i><span class="text-green-800 font-medium">AI 真实生成完成</span><span class="text-green-600">内容由豆包大模型生成，图片由 Seedream 生成，视频由 Seedance 生成</span></div>';
+        // 获取当前勾选的格式
+        var selectedFormats = [];
+        document.querySelectorAll('#output-formats input[type="checkbox"]:checked').forEach(function(cb) { selectedFormats.push(cb.value); });
+        var hasPoster = selectedFormats.indexOf('poster') >= 0;
+        var hasImage = selectedFormats.indexOf('image') >= 0;
+        var hasVideo = selectedFormats.indexOf('video') >= 0;
+
+        // 动态生成状态栏（仅显示选中格式）
+        var statusHtml = '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-file-code text-blue-500"></i><div><p class="text-xs text-slate-500">文案生成</p><p id="status-text" class="text-sm font-semibold text-slate-800">--</p></div></div>';
+        if (hasImage || hasPoster) statusHtml += '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-image text-purple-500"></i><div><p class="text-xs text-slate-500">图片生成</p><p id="status-image" class="text-sm font-semibold text-slate-800">--</p></div></div>';
+        if (hasVideo) statusHtml += '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-video text-orange-500"></i><div><p class="text-xs text-slate-500">视频生成</p><p id="status-video" class="text-sm font-semibold text-slate-800">--</p></div></div>';
+        if (hasPoster) statusHtml += '<div class="bg-white rounded-lg border border-slate-200 p-3 flex items-center gap-3"><i class="fa-solid fa-image text-green-500"></i><div><p class="text-xs text-slate-500">海报渲染</p><p id="status-poster" class="text-sm font-semibold text-slate-800">--</p></div></div>';
+        statusBar.innerHTML = statusHtml;
+        statusBar.classList.remove('hidden');
+
+        // 显隐右侧预览区
+        var posterCard = document.getElementById('poster-preview-card');
+        var imagesCard = document.getElementById('images-preview-card');
+        var videoCard = document.getElementById('video-preview-card');
+        if (posterCard) posterCard.style.display = hasPoster ? '' : 'none';
+        if (imagesCard) imagesCard.style.display = (hasImage || hasPoster) ? '' : 'none';
+        if (videoCard) videoCard.style.display = hasVideo ? '' : 'none';
 
         if (masterJson) {
             textArea.innerHTML = renderMasterContent(masterJson);
