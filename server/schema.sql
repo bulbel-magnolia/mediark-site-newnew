@@ -133,3 +133,23 @@ CREATE INDEX IF NOT EXISTS idx_works_reviewer ON works(assigned_reviewer_id, sta
 CREATE INDEX IF NOT EXISTS idx_work_versions_work_id ON work_versions(work_id, version);
 CREATE INDEX IF NOT EXISTS idx_assets_work_version_id ON assets(work_version_id);
 CREATE INDEX IF NOT EXISTS idx_review_actions_work_id ON review_actions(work_id, created_at);
+
+CREATE TABLE IF NOT EXISTS knowledge_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cancer_type TEXT NOT NULL DEFAULT 'esophageal',
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  title_en TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT '',
+  authors TEXT NOT NULL DEFAULT '',
+  year INTEGER,
+  summary TEXT NOT NULL DEFAULT '',
+  key_points_json TEXT NOT NULL DEFAULT '[]',
+  evidence_level TEXT,
+  url TEXT NOT NULL DEFAULT '',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_knowledge_cancer_type ON knowledge_entries(cancer_type);
+CREATE INDEX IF NOT EXISTS idx_knowledge_category ON knowledge_entries(category);

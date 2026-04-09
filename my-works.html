@@ -112,6 +112,7 @@
         </div>
     </div>
 
+<script src="js/app/toast.js"></script>
 <script src="js/app/sidebar.js"></script>
 <script>
     var currentTab = 'mine';
@@ -211,6 +212,7 @@
             html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">发布到作品库</button>';
         } else if (s === 'published') {
             html += '<a href="library.html" class="flex-1 px-2 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition text-center">查看作品库</a>';
+            html += '<button onclick="showQRCode(' + work.id + ',\'' + (work.title || '').replace(/'/g, "\\'") + '\')" class="px-2 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition"><i class="fa-solid fa-qrcode"></i></button>';
         } else if (s === 'changes_requested') {
             html += '<button onclick="openDetail(' + work.id + ')" class="flex-1 px-2 py-1.5 bg-amber-50 text-amber-700 rounded text-xs font-medium hover:bg-amber-100 transition">查看意见</button>';
         }
@@ -250,7 +252,7 @@
             loadWorks();
             closeDetail();
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message);
         }
     }
 
@@ -267,7 +269,7 @@
             }
             loadWorks();
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message);
         }
     }
 
@@ -356,7 +358,7 @@
 
             document.getElementById('detail-modal').classList.remove('hidden');
         } catch (err) {
-            alert(err.message);
+            toast.error(err.message);
         }
     }
 
@@ -368,6 +370,34 @@
     document.getElementById('detail-modal').addEventListener('click', function(e) {
         if (e.target === this) closeDetail();
     });
+
+    // === 患者二维码 ===
+    function showQRCode(workId, title) {
+        var url = window.location.origin + '/library.html?highlight=' + workId;
+        var qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url);
+
+        var modal = document.getElementById('detail-modal');
+        document.getElementById('modal-title').textContent = '患者扫码查看';
+        document.getElementById('modal-body').innerHTML =
+            '<div class="text-center py-4">'
+            + '<p class="text-sm text-slate-600 mb-4">患者扫描下方二维码即可查看科普内容</p>'
+            + '<div class="inline-block bg-white p-4 rounded-xl shadow-lg border border-slate-200">'
+            + '<img src="' + qrImgUrl + '" alt="QR Code" class="w-60 h-60 mx-auto">'
+            + '</div>'
+            + '<p class="text-sm font-bold text-slate-800 mt-4">' + (title || '科普作品') + '</p>'
+            + '<p class="text-xs text-slate-400 mt-2 break-all max-w-sm mx-auto">' + url + '</p>'
+            + '<button onclick="copyToClipboard(\'' + url.replace(/'/g, "\\'") + '\')" class="mt-3 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition"><i class="fa-solid fa-copy mr-1"></i>复制链接</button>'
+            + '</div>';
+        document.getElementById('modal-actions').innerHTML =
+            '<button onclick="closeDetail()" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm transition">关闭</button>';
+        modal.classList.remove('hidden');
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            if (window.toast) toast.success('链接已复制');
+        }).catch(function() {});
+    }
 
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {

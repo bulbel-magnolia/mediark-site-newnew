@@ -314,6 +314,12 @@
             .then(data => {
                 allWorks = data.items || [];
                 renderWorks(allWorks);
+                // 二维码扫码跳转：自动打开指定作品
+                const highlightId = new URLSearchParams(window.location.search).get('highlight');
+                if (highlightId) {
+                    const target = allWorks.find(w => w.id == highlightId);
+                    if (target) { setTimeout(() => openModal(target), 500); }
+                }
             })
             .catch(() => {
                 // Fallback: 读取静态 works.json

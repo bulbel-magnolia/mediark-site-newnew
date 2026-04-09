@@ -221,6 +221,7 @@
         </div>
     </div>
 
+<script src="js/app/toast.js"></script>
 <!-- register.html 的新脚本 -->
     <script>
         // 初始化图标
@@ -237,7 +238,7 @@
         getCodeBtn.addEventListener('click', () => {
             const mobile = document.getElementById('mobile').value;
             if(!mobile || mobile.length !== 11) {
-                alert('请先输入正确的手机号'); return;
+                toast.error('请先输入正确的手机号'); return;
             }
             let count = 60;
             getCodeBtn.disabled = true;
@@ -253,56 +254,55 @@
                     getCodeBtn.classList.remove('text-gray-400', 'cursor-not-allowed');
                 }
             }, 1000);
-            alert('模拟验证码已发送：888888');
+            toast.info('模拟验证码已发送：888888');
         });
 
-        // --- 核心注册逻辑 ---
-        document.getElementById('registerForm').addEventListener('submit', (e) => {
+        // --- 核心注册逻辑（后端 API）---
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const pwd = document.getElementById('password').value;
-            const confirm = document.getElementById('confirmPassword').value;
+            const confirmPwd = document.getElementById('confirmPassword').value;
             const errorMsg = document.getElementById('errorMsg');
 
-            // 1. 校验密码
-            if(pwd !== confirm) {
+            if (pwd !== confirmPwd) {
                 errorMsg.classList.remove('hidden');
                 return;
             }
             errorMsg.classList.add('hidden');
 
-            // 2. 获取表单数据
             const formData = new FormData(e.target);
-            const newUser = Object.fromEntries(formData.entries());
+            const fields = Object.fromEntries(formData.entries());
 
-            // 3. 读取现有数据库 (模拟)
-            let usersDB = JSON.parse(localStorage.getItem('mediark_users') || '[]');
-
-            // 4. 查重 (工号或手机号不能重复)
-            const exists = usersDB.find(u => u.jobId === newUser.jobId || u.mobile === newUser.mobile);
-            if(exists) {
-                alert("注册失败：该工号或手机号已被注册！");
-                return;
-            }
-
-            // 5. 补充数据并入库
-            newUser.role = 'doctor'; // 默认注册为医生角色
-            newUser.regTime = new Date().toISOString(); // 注册时间
-            
-            usersDB.push(newUser);
-            localStorage.setItem('mediark_users', JSON.stringify(usersDB));
-
-            // 6. UI 反馈与跳转
             const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner w-4 h-4 animate-spin"></i> 注册中...`;
-            
 
-            console.log("✅ 用户已存入 LocalStorage:", newUser);
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: fields.jobId,
+                        displayName: fields.realName,
+                        password: pwd
+                    })
+                });
 
-            setTimeout(() => {
-                alert("注册成功！点击确定返回登录。");
-                window.location.href = "Login.html"; 
-            }, 1000);
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || '注册失败');
+                }
+
+                toast.success("注册成功！即将跳转到工作台...");
+                setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
+            } catch (err) {
+                toast.error("注册失败：" + err.message);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         });
     </script>
 </body>

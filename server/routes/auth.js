@@ -1,9 +1,43 @@
 import express from "express";
 
-import { clearSessionCookie, issueSession, revokeSession, setSessionCookie, verifyPassword } from "../lib/auth.js";
+import { get, run } from "../db.js";
+import { clearSessionCookie, hashPassword, issueSession, revokeSession, setSessionCookie, verifyPassword } from "../lib/auth.js";
 
 export function createAuthRouter({ db, auth }) {
   const router = express.Router();
+
+  // Public self-registration (creates a doctor account)
+  router.post("/register", (req, res) => {
+    const username = String(req.body?.username || "").trim();
+    const displayName = String(req.body?.displayName || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!username || !displayName || !password) {
+      return res.status(400).json({ error: "用户名、姓名和密码为必填项。" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: "密码不得少于6位。" });
+    }
+
+    const existing = get(db, "SELECT id FROM users WHERE username = :username", { username });
+    if (existing) {
+      return res.status(409).json({ error: "该用户名已被注册。" });
+    }
+
+    const result = run(db,
+      `INSERT INTO users (username, display_name, role, password_hash)
+       VALUES (:username, :displayName, 'doctor', :passwordHash)`,
+      { username, displayName, passwordHash: hashPassword(password) }
+    );
+
+    const userId = Number(result.lastInsertRowid);
+    const token = issueSession(db, userId);
+    setSessionCookie(res, token);
+
+    return res.status(201).json({
+      user: { id: userId, username, displayName, role: "doctor" }
+    });
+  });
 
   router.post("/login", (req, res) => {
     const username = String(req.body?.username || "").trim();

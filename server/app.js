@@ -11,6 +11,7 @@ import { createSchemasRouter } from "./routes/schemas.js";
 import { createUsersRouter } from "./routes/users.js";
 import { createPatientsRouter } from "./routes/patients.js";
 import { createWorksRouter } from "./routes/works.js";
+import { createKnowledgeRouter } from "./routes/knowledge.js";
 import { seedDatabase } from "./seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -35,6 +36,7 @@ export function createApp({ db = createDatabase(), disableStatic = false, genera
   app.use("/api/patients", createPatientsRouter({ db, auth }));
   app.use("/api/works", createWorksRouter({ db, auth, generationRuntime }));
   app.use("/api/library", createLibraryRouter({ db }));
+  app.use("/api/knowledge", createKnowledgeRouter({ db, auth }));
 
   app.use((error, _req, res, _next) => {
     console.error(error);

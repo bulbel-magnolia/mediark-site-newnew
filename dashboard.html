@@ -18,6 +18,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - 智瘤方舟工作台</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     
@@ -132,6 +133,18 @@
                 </div>
             </div>
 
+            <!-- 数据图表 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-4">作品状态分布</h3>
+                    <div class="relative h-56"><canvas id="chart-status"></canvas></div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-4">近期创作趋势</h3>
+                    <div class="relative h-56"><canvas id="chart-trend"></canvas></div>
+                </div>
+            </div>
+
             <!-- 快捷操作 -->
             <div class="flex gap-4 mb-8">
                 <a href="prescription.html" class="flex-1 bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition flex items-center gap-3 shadow-lg shadow-blue-500/20">
@@ -206,6 +219,128 @@
             document.getElementById('stat-pending').textContent = pending.length;
 
             document.getElementById('greeting-sub').textContent = '您已通过 MediArk 创建了 ' + works.length + ' 个科普作品，管理 ' + patientCount + ' 位患者。';
+
+            // 图表渲染
+            if (typeof Chart !== 'undefined') {
+                // 饼图：作品状态分布
+                var statusCanvas = document.getElementById('chart-status');
+                if (statusCanvas) {
+                    var statusKeys = ['generated', 'pending_review', 'approved', 'published', 'archived', 'changes_requested'];
+                    var statusChartLabels = statusKeys.map(function(k) { return statusLabels[k] || k; });
+                    var statusChartColors = {
+                        generated: '#3B82F6', pending_review: '#F59E0B', approved: '#10B981',
+                        published: '#6366F1', archived: '#94A3B8', changes_requested: '#EF4444'
+                    };
+                    var statusCounts = statusKeys.map(function(k) {
+                        return works.filter(function(w) { return w.status === k; }).length;
+                    });
+                    var hasData = statusCounts.some(function(c) { return c > 0; });
+
+                    if (hasData) {
+                        new Chart(statusCanvas, {
+                            type: 'doughnut',
+                            data: {
+                                labels: statusChartLabels,
+                                datasets: [{
+                                    data: statusCounts,
+                                    backgroundColor: statusKeys.map(function(k) { return statusChartColors[k]; }),
+                                    borderWidth: 2,
+                                    borderColor: '#fff'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'right', labels: { boxWidth: 12, padding: 12, font: { size: 12 } } }
+                                }
+                            }
+                        });
+                    } else {
+                        new Chart(statusCanvas, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['暂无数据'],
+                                datasets: [{
+                                    data: [1],
+                                    backgroundColor: ['#E2E8F0'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: { enabled: false }
+                                }
+                            }
+                        });
+                    }
+                }
+
+                // 折线图：近期创作趋势
+                var trendCanvas = document.getElementById('chart-trend');
+                if (trendCanvas) {
+                    var days = [];
+                    var dayCounts = [];
+                    for (var i = 6; i >= 0; i--) {
+                        var d = new Date();
+                        d.setDate(d.getDate() - i);
+                        var mm = String(d.getMonth() + 1).padStart(2, '0');
+                        var dd = String(d.getDate()).padStart(2, '0');
+                        var dateStr = mm + '-' + dd;
+                        days.push(dateStr);
+                        var fullDate = d.toISOString().slice(0, 10);
+                        var count = works.filter(function(w) {
+                            return w.createdAt && w.createdAt.slice(0, 10) === fullDate;
+                        }).length;
+                        dayCounts.push(count);
+                    }
+
+                    var trendCtx = trendCanvas.getContext('2d');
+                    var gradient = trendCtx.createLinearGradient(0, 0, 0, 224);
+                    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+                    gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+                    new Chart(trendCanvas, {
+                        type: 'line',
+                        data: {
+                            labels: days,
+                            datasets: [{
+                                label: '创建作品数',
+                                data: dayCounts,
+                                borderColor: '#3B82F6',
+                                backgroundColor: gradient,
+                                fill: true,
+                                tension: 0.3,
+                                pointBackgroundColor: '#3B82F6',
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1, font: { size: 11 } },
+                                    grid: { color: 'rgba(0,0,0,0.05)' }
+                                },
+                                x: {
+                                    ticks: { font: { size: 11 } },
+                                    grid: { display: false }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                }
+            }
 
             // 最近作品动态
             var recentEl = document.getElementById('recent-works');

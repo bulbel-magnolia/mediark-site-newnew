@@ -330,6 +330,7 @@
         </div>
     </main>
 
+<script src="js/app/toast.js"></script>
 <script src="js/app/sidebar.js"></script>
 <script>
     // 1. 患者数据（从后端 API 加载）
@@ -489,6 +490,7 @@
     }
 
     function goToStep3() {
+        if (_videoAutoTimer) { clearInterval(_videoAutoTimer); _videoAutoTimer = null; }
         if (currentWorkId) {
             fetch('/api/works/' + currentWorkId + '/publish', {
                 method: 'POST', credentials: 'include',
@@ -627,9 +629,10 @@
         } else if (vid && vid.status === 'processing' && vid.taskId) {
             videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-slate-300">'
                 + '<i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>'
-                + '<span class="text-xs">视频生成中 (约1-2分钟)</span>'
-                + '<button onclick="pollVideoStatus(\'' + vid.taskId + '\')" class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">刷新状态</button>'
+                + '<span class="text-xs">视频生成中 (每10秒自动刷新)</span>'
+                + '<button onclick="pollVideoStatus(\'' + vid.taskId + '\')" class="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">立即刷新</button>'
                 + '</div>';
+            startVideoAutoPolling(vid.taskId);
         } else {
             var vStatus = vid ? (vid.status || 'queued') : 'N/A';
             videoEl.innerHTML = '<div class="bg-slate-800 rounded-lg h-32 flex flex-col items-center justify-center text-slate-400"><i class="fa-solid fa-film text-2xl mb-2"></i><span class="text-xs">' + vStatus + '</span></div>';
@@ -662,6 +665,37 @@
         document.getElementById('status-image').textContent = label(status.image_generation);
         document.getElementById('status-video').textContent = label(status.video_generation);
         document.getElementById('status-poster').textContent = label(status.poster_render);
+    }
+
+    // === 视频自动轮询 ===
+    var _videoAutoTimer = null;
+    function startVideoAutoPolling(taskId) {
+        if (_videoAutoTimer) clearInterval(_videoAutoTimer);
+        var retries = 0;
+        var maxRetries = 18; // 18 × 10s = 3 minutes
+        _videoAutoTimer = setInterval(async function() {
+            retries++;
+            if (retries > maxRetries) {
+                clearInterval(_videoAutoTimer);
+                _videoAutoTimer = null;
+                return;
+            }
+            try {
+                var res = await fetch('/api/works/video-status/' + taskId, { credentials: 'include' });
+                if (!res.ok) return;
+                var data = await res.json();
+                if (data.status === 'succeeded' && data.videoUrl) {
+                    clearInterval(_videoAutoTimer);
+                    _videoAutoTimer = null;
+                    document.getElementById('video-preview').innerHTML = '<video controls class="w-full rounded-lg" src="' + data.videoUrl + '"></video>';
+                    document.getElementById('status-video').textContent = '已完成';
+                } else if (data.status === 'failed') {
+                    clearInterval(_videoAutoTimer);
+                    _videoAutoTimer = null;
+                    document.getElementById('status-video').textContent = '生成失败';
+                }
+            } catch (e) { /* ignore network errors during polling */ }
+        }, 10000);
     }
 
     // === 核心生成逻辑 ===
@@ -701,7 +735,7 @@
             if (response.status === 401) {
                 clearInterval(interval);
                 loader.style.display = 'none';
-                alert('请先登录后再使用生成功能。');
+                toast.error('请先登录后再使用生成功能。');
                 window.location.href = 'Login.html';
                 return;
             }
@@ -780,6 +814,11 @@
     };
 
     function regenerateContent() { runGeneration(true); }
+
+    function toggleLang() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        document.getElementById('lang-display').textContent = currentLang === 'zh' ? 'English' : '中文';
+    }
 </script>
 </body>
 </html>

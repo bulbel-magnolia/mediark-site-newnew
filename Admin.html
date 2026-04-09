@@ -147,8 +147,9 @@
         </div>
     </div>
     
+    <script src="js/app/toast.js"></script>
     <script>
-        
+
 
         let allUsers = [];
         let currentActionUserId = null; // 后端使用 numeric id
@@ -160,7 +161,7 @@
                 const res = await fetch('/api/auth/me', { credentials: 'include' });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.user.role !== 'admin') { alert('需要管理员权限'); window.location.href = 'Login.html'; return; }
+                    if (data.user.role !== 'admin') { toast.error('需要管理员权限'); window.location.href = 'Login.html'; return; }
                     document.getElementById('adminNameDisplay').innerText = data.user.displayName || '管理员';
                     sessionStorage.setItem('mediark_current_user', JSON.stringify({
                         id: data.user.id, name: data.user.displayName,
@@ -177,7 +178,7 @@
                 document.getElementById('adminNameDisplay').innerText = session.name || '管理员';
                 loadData();
             } else {
-                alert('请先以管理员身份登录。');
+                toast.error('请先以管理员身份登录。');
                 window.location.href = 'Login.html';
             }
         });
@@ -191,9 +192,7 @@
                 allUsers = data.items || data.users || [];
                 renderTable(allUsers);
             } catch (err) {
-                // Fallback: 从 localStorage 读取注册用户
-                const stored = localStorage.getItem('mediark_users');
-                allUsers = stored ? JSON.parse(stored) : [];
+                allUsers = [];
                 renderTable(allUsers);
             }
         }
@@ -305,10 +304,10 @@
                     body: JSON.stringify({ password: '123456' })
                 });
                 if (!res.ok) throw new Error('重置失败');
-                alert('密码已重置为: 123456');
+                toast.success('密码已重置为: 123456');
                 closeModal('resetModal');
             } catch (err) {
-                alert('操作失败：' + err.message);
+                toast.error('操作失败：' + err.message);
             }
         }
 
@@ -326,7 +325,7 @@
                 closeModal('deleteModal');
                 loadData(); // 刷新列表
             } catch (err) {
-                alert('操作失败：' + err.message);
+                toast.error('操作失败：' + err.message);
             }
         }
 

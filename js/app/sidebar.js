@@ -44,6 +44,51 @@
     if (avatarEl) avatarEl.textContent = (displayName || '?')[0].toUpperCase();
   }
 
+  // === 移动端汉堡菜单 ===
+  document.addEventListener('DOMContentLoaded', function () {
+    var aside = document.querySelector('aside');
+    var header = document.querySelector('main > header');
+    if (!aside || !header) return;
+
+    // 创建汉堡按钮（仅移动端显示）
+    var btn = document.createElement('button');
+    btn.className = 'md:hidden mr-3 p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition';
+    btn.innerHTML = '<i class="fa-solid fa-bars text-lg"></i>';
+    btn.setAttribute('aria-label', '菜单');
+    header.insertBefore(btn, header.firstChild);
+
+    // 创建遮罩层
+    var overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/50 z-40 hidden transition-opacity';
+    document.body.appendChild(overlay);
+
+    function openMenu() {
+      aside.classList.remove('hidden');
+      aside.classList.add('flex', 'fixed', 'inset-y-0', 'left-0', 'z-50');
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenu() {
+      aside.classList.add('hidden');
+      aside.classList.remove('flex', 'fixed', 'inset-y-0', 'left-0', 'z-50');
+      overlay.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    btn.addEventListener('click', function () {
+      if (aside.classList.contains('fixed')) closeMenu();
+      else openMenu();
+    });
+
+    overlay.addEventListener('click', closeMenu);
+
+    // 窗口变大时自动恢复
+    window.addEventListener('resize', function () {
+      if (window.innerWidth >= 768) closeMenu();
+    });
+  });
+
   // 退出登录
   window.sidebarLogout = async function () {
     try {

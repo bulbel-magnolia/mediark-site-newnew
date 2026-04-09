@@ -2,11 +2,12 @@
 -------------------------------------------------------------------------
 [模块名称]: 医学知识图谱可视化与数据源 (Medical Knowledge Graph)
 [文件名称]: knowledge.html
-[开发语言]: HTML5 / D3.js (或类似库逻辑)
+[开发语言]: HTML5 / Tailwind CSS / JS
 [所属子系统]: 知识库支撑子系统
-[功能描述]: 
+[功能描述]:
     1. 展示 RAG (检索增强生成) 的底层数据来源（NCCN/CSCO指南）。
     2. 可视化呈现疾病-治疗方案的知识节点关联。
+    3. 从后端 /api/knowledge 加载真实文献与指南数据。
 -------------------------------------------------------------------------
 -->
 
@@ -19,27 +20,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
+
     <style>
         body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* 模拟知识图谱的连接线 */
-        .connector {
-            position: absolute;
-            background-color: #cbd5e1;
-            z-index: 0;
-            transform-origin: 0 0;
-        }
-        
-        /* 节点脉冲动画 */
-        .node-pulse {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(2); opacity: 0; }
-        }
+        .node-pulse { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(2); opacity: 0; } }
     </style>
 </head>
 <body class="bg-slate-50 h-screen flex overflow-hidden">
@@ -50,7 +35,6 @@
             <img src="网页展示素材库/logo/logo.png" class="h-8 w-auto bg-white rounded-full p-1" alt="Logo">
             <span class="font-bold text-lg tracking-wide">MediArk</span>
         </div>
-
         <nav class="flex-1 px-4 py-6 space-y-2">
             <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
                 <i class="fa-solid fa-chart-pie w-5"></i><span>工作台</span>
@@ -68,7 +52,6 @@
                 <i class="fa-solid fa-book-medical w-5"></i><span>知识库</span>
             </a>
         </nav>
-
         <div class="p-4 border-t border-slate-800">
             <div class="flex items-center gap-3">
                 <div id="sidebar-user-avatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center font-bold text-sm">?</div>
@@ -85,234 +68,250 @@
 
     <!-- 主内容区 -->
     <main class="flex-1 flex flex-col h-screen relative">
-        
-        <!-- 顶部导航 -->
         <header class="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-20">
-            <h1 class="text-xl font-semibold text-slate-800" data-i18n="page_title">医学知识图谱与数据源</h1>
-            <div class="flex items-center gap-4">
-                <button onclick="toggleLang()" class="px-3 py-1 border border-slate-300 rounded-md text-sm font-medium hover:bg-slate-50 transition">
-                    <i class="fa-solid fa-globe mr-2 text-slate-500"></i><span id="lang-display">English</span>
-                </button>
-                <a href="index.html" class="text-slate-500 hover:text-blue-600 transition">
-                    <i class="fa-solid fa-right-from-bracket text-xl"></i>
-                </a>
+            <h1 class="text-xl font-semibold text-slate-800"><i class="fa-solid fa-book-medical text-blue-600 mr-2"></i>医学知识图谱与循证数据源</h1>
+            <div class="flex items-center gap-2">
+                <span id="stats-badge" class="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full"></span>
             </div>
         </header>
 
-        <!-- 知识库内容 -->
-        <div class="flex-1 overflow-y-auto p-8">
-            
-            <!-- 搜索与权威认证 -->
-            <div class="max-w-4xl mx-auto mb-10 text-center">
-                <div class="relative w-full max-w-2xl mx-auto mb-6">
+        <div class="flex-1 overflow-y-auto p-6 md:p-8">
+
+            <!-- 搜索 + 权威标签 -->
+            <div class="max-w-4xl mx-auto mb-8 text-center">
+                <div class="relative w-full max-w-2xl mx-auto mb-4">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                    <input type="text" class="w-full pl-12 pr-4 py-4 rounded-full border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg" placeholder="搜索指南、临床路径或文献..." data-i18n="search_placeholder">
+                    <input type="text" id="search-input" oninput="filterEntries()" class="w-full pl-12 pr-4 py-4 rounded-full border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg" placeholder="搜索指南、临床试验或文献...">
                 </div>
-                
-                <div class="flex justify-center flex-wrap gap-4">
+                <div class="flex justify-center flex-wrap gap-3">
                     <span class="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
-                        <i class="fa-solid fa-building-columns text-blue-700"></i> 北大肿瘤医院独家数据
-                    </span>
-                    <span class="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
-                        <i class="fa-solid fa-book text-green-600"></i> NCCN 指南 (2025 V1)
+                        <i class="fa-solid fa-book text-green-600"></i> NCCN 指南
                     </span>
                     <span class="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
                         <i class="fa-solid fa-flask text-purple-600"></i> CSCO 指南
                     </span>
+                    <span class="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
+                        <i class="fa-solid fa-microscope text-blue-600"></i> III期临床试验
+                    </span>
+                    <span class="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
+                        <i class="fa-solid fa-apple-whole text-orange-600"></i> ESPEN 营养指南
+                    </span>
                 </div>
             </div>
 
-            <!-- 知识图谱可视化 (核心视觉区) -->
-            <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 h-[500px] relative overflow-hidden mb-8">
-                <div class="absolute top-4 left-4 bg-slate-50 px-3 py-1 rounded text-xs text-slate-500 border border-slate-200">
-                    <i class="fa-solid fa-circle-nodes mr-1"></i> <span data-i18n="graph_title">食管癌知识图谱预览</span>
+            <!-- 知识图谱可视化 -->
+            <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 h-[420px] relative overflow-hidden mb-8">
+                <div class="absolute top-4 left-4 bg-slate-50 px-3 py-1 rounded text-xs text-slate-500 border border-slate-200 z-20">
+                    <i class="fa-solid fa-circle-nodes mr-1"></i> 食管癌知识图谱
                 </div>
+                <div class="absolute top-4 right-4 text-xs text-slate-400 z-20">点击节点筛选对应知识</div>
 
                 <!-- 中心节点 -->
-                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 text-center">
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 text-center">
                     <div class="relative">
                         <div class="absolute inset-0 bg-blue-500 rounded-full node-pulse z-0"></div>
-                        <div class="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-xl relative z-10 border-4 border-white">
-                            <span data-i18n="node_center">食管癌</span>
-                        </div>
+                        <div onclick="filterByCategory('')" class="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-xl relative z-10 border-4 border-white cursor-pointer hover:bg-blue-700 transition">食管癌</div>
                     </div>
                 </div>
 
-                <!-- 子节点 1 (术后饮食) -->
-                <div class="absolute top-1/4 left-1/4 z-10 text-center">
-                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition">
-                        <span data-i18n="node_diet">术后饮食</span>
-                    </div>
+                <!-- 子节点 -->
+                <div onclick="filterByCategory('guideline')" class="absolute top-[15%] left-[18%] z-10 cursor-pointer group">
+                    <div class="w-16 h-16 bg-green-500 group-hover:bg-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white transition">临床指南</div>
                 </div>
+                <div onclick="filterByCategory('trial')" class="absolute top-[15%] right-[18%] z-10 cursor-pointer group">
+                    <div class="w-16 h-16 bg-purple-500 group-hover:bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white transition">临床试验</div>
+                </div>
+                <div onclick="filterByCategory('nutrition')" class="absolute bottom-[18%] left-[15%] z-10 cursor-pointer group">
+                    <div class="w-16 h-16 bg-orange-500 group-hover:bg-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white transition">营养管理</div>
+                </div>
+                <div onclick="filterByCategory('rehabilitation')" class="absolute bottom-[18%] right-[15%] z-10 cursor-pointer group">
+                    <div class="w-16 h-16 bg-indigo-500 group-hover:bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white transition">康复训练</div>
+                </div>
+                <div onclick="filterByCategory('staging')" class="absolute top-[50%] left-[5%] -translate-y-1/2 z-10 cursor-pointer group">
+                    <div class="w-14 h-14 bg-rose-500 group-hover:bg-rose-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-lg border-2 border-white transition">TNM分期</div>
+                </div>
+                <div onclick="filterByCategory('regimen')" class="absolute top-[50%] right-[5%] -translate-y-1/2 z-10 cursor-pointer group">
+                    <div class="w-14 h-14 bg-cyan-500 group-hover:bg-cyan-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-lg border-2 border-white transition">化疗方案</div>
+                </div>
+
                 <!-- 连接线 -->
                 <svg class="absolute inset-0 w-full h-full pointer-events-none">
-                    <line x1="50%" y1="50%" x2="25%" y2="25%" stroke="#e2e8f0" stroke-width="2" />
+                    <line x1="50%" y1="50%" x2="18%" y2="15%" stroke="#e2e8f0" stroke-width="2"/>
+                    <line x1="50%" y1="50%" x2="82%" y2="15%" stroke="#e2e8f0" stroke-width="2"/>
+                    <line x1="50%" y1="50%" x2="15%" y2="82%" stroke="#e2e8f0" stroke-width="2"/>
+                    <line x1="50%" y1="50%" x2="85%" y2="82%" stroke="#e2e8f0" stroke-width="2"/>
+                    <line x1="50%" y1="50%" x2="5%" y2="50%" stroke="#e2e8f0" stroke-width="1.5"/>
+                    <line x1="50%" y1="50%" x2="95%" y2="50%" stroke="#e2e8f0" stroke-width="1.5"/>
                 </svg>
-
-                <!-- 子节点 2 (放疗) -->
-                <div class="absolute top-1/4 right-1/4 z-10 text-center">
-                    <div class="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition">
-                        <span data-i18n="node_radio">放疗方案</span>
-                    </div>
-                </div>
-                <svg class="absolute inset-0 w-full h-full pointer-events-none">
-                    <line x1="50%" y1="50%" x2="75%" y2="25%" stroke="#e2e8f0" stroke-width="2" />
-                </svg>
-
-                <!-- 子节点 3 (并发症) -->
-                <div class="absolute bottom-1/4 left-1/3 z-10 text-center">
-                    <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition">
-                        <span data-i18n="node_comp">并发症</span>
-                    </div>
-                </div>
-                <svg class="absolute inset-0 w-full h-full pointer-events-none">
-                    <line x1="50%" y1="50%" x2="33%" y2="75%" stroke="#e2e8f0" stroke-width="2" />
-                </svg>
-
-                 <!-- 子节点 4 (康复) -->
-                 <div class="absolute bottom-1/4 right-1/3 z-10 text-center">
-                    <div class="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition">
-                        <span data-i18n="node_rehab">康复训练</span>
-                    </div>
-                </div>
-                <svg class="absolute inset-0 w-full h-full pointer-events-none">
-                    <line x1="50%" y1="50%" x2="66%" y2="75%" stroke="#e2e8f0" stroke-width="2" />
-                </svg>
-
-                <!-- 装饰性微粒 -->
-                <div class="absolute top-10 right-20 w-2 h-2 bg-slate-300 rounded-full opacity-50"></div>
-                <div class="absolute bottom-20 left-10 w-3 h-3 bg-blue-200 rounded-full opacity-50"></div>
             </div>
 
-            <!-- 最新录入文献 -->
+            <!-- 分类 Tab + 条目列表 -->
             <div class="max-w-5xl mx-auto">
-                <h3 class="font-bold text-slate-800 mb-4" data-i18n="recent_updates">最近录入文献 / 指南更新</h3>
-                <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-                    
-                    <div class="p-4 flex justify-between items-center hover:bg-slate-50 transition">
-                        <div class="flex items-center gap-3">
-                            <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">GUIDELINE</span>
-                            <div class="text-sm text-slate-700">NCCN Clinical Practice Guidelines in Oncology: Esophageal and Esophagogastric Junction Cancers</div>
-                        </div>
-                        <span class="text-xs text-slate-400">Version 1.2026</span>
-                    </div>
+                <div class="flex items-center gap-2 mb-4 flex-wrap">
+                    <button onclick="filterByCategory('')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white" data-cat="">全部</button>
+                    <button onclick="filterByCategory('guideline')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="guideline">临床指南</button>
+                    <button onclick="filterByCategory('trial')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="trial">临床试验</button>
+                    <button onclick="filterByCategory('nutrition')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="nutrition">营养管理</button>
+                    <button onclick="filterByCategory('rehabilitation')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="rehabilitation">康复训练</button>
+                    <button onclick="filterByCategory('staging')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="staging">TNM分期</button>
+                    <button onclick="filterByCategory('regimen')" class="cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="regimen">化疗方案</button>
+                </div>
 
-                    <div class="p-4 flex justify-between items-center hover:bg-slate-50 transition">
-                        <div class="flex items-center gap-3">
-                            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">PAPER</span>
-                            <div class="text-sm text-slate-700">Immunotherapy for Esophageal Squamous Cell Carcinoma: A Review (The Lancet)</div>
-                        </div>
-                        <span class="text-xs text-slate-400">2 days ago</span>
-                    </div>
-
-                    <div class="p-4 flex justify-between items-center hover:bg-slate-50 transition">
-                        <div class="flex items-center gap-3">
-                            <span class="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded">INTERNAL</span>
-                            <div class="text-sm text-slate-700">北大肿瘤医院胸外科：术后快速康复(ERAS)临床路径标准操作规程</div>
-                        </div>
-                        <span class="text-xs text-slate-400">Updated today</span>
-                    </div>
-
+                <div id="entries-list" class="space-y-3">
+                    <p class="text-slate-400 text-sm py-8 text-center">加载中...</p>
                 </div>
             </div>
-
         </div>
     </main>
 
-    <script src="js/app/sidebar.js"></script>
-    <script>
-        // 国际化字典
-        const i18n = {
-            zh: {
-                dashboard: "工作台", patients: "患者管理", prescription: "数字处方开具", knowledge: "知识库 (PKU)",
-                doctor_name: "黎医生", hospital_name: "北大肿瘤医院 · 食管肿瘤科",
-                page_title: "医学知识图谱与数据源",
-                search_placeholder: "搜索指南、临床路径或文献...",
-                graph_title: "食管癌知识图谱预览",
-                node_center: "食管癌", node_diet: "术后饮食", node_radio: "放疗方案", node_comp: "并发症", node_rehab: "康复训练",
-                recent_updates: "最近录入文献 / 指南更新"
-            },
-            en: {
-                dashboard: "Dashboard", patients: "Patients", prescription: "Create Prescription", knowledge: "Knowledge Base",
-                doctor_name: "Dr. Li", hospital_name: "PKU Cancer Hospital",
-                page_title: "Medical Knowledge Graph",
-                search_placeholder: "Search guidelines, pathways, or papers...",
-                graph_title: "Esophageal Cancer Graph Preview",
-                node_center: "Esophageal CA", node_diet: "Post-op Diet", node_radio: "Radiotherapy", node_comp: "Complications", node_rehab: "Rehab",
-                recent_updates: "Recent Literature & Guideline Updates"
-            }
-        };
+    <!-- 详情 Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-start justify-center overflow-y-auto py-8 px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative">
+            <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                <h2 id="modal-title" class="text-lg font-bold text-slate-800 pr-8"></h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="modal-body" class="p-6 max-h-[70vh] overflow-y-auto"></div>
+        </div>
+    </div>
 
-    // ==========================================
-        //   通用语言管理脚本 (Ultimate Fix Version)
-        // ==========================================
+<script src="js/app/sidebar.js"></script>
+<script>
+    var allEntries = [];
+    var currentCat = '';
 
-        // 1. 优先读取 URL 参数
-        const urlParams = new URLSearchParams(window.location.search);
-        const langParam = urlParams.get('lang');
+    var categoryLabels = {
+        guideline: '临床指南', trial: '临床试验', nutrition: '营养管理',
+        rehabilitation: '康复训练', staging: 'TNM分期', regimen: '化疗方案'
+    };
+    var categoryColors = {
+        guideline: 'bg-green-100 text-green-700', trial: 'bg-purple-100 text-purple-700',
+        nutrition: 'bg-orange-100 text-orange-700', rehabilitation: 'bg-indigo-100 text-indigo-700',
+        staging: 'bg-rose-100 text-rose-700', regimen: 'bg-cyan-100 text-cyan-700'
+    };
 
-        // 2. 其次读取浏览器本地存储
-        const savedLang = localStorage.getItem('mediark_lang');
+    document.addEventListener('DOMContentLoaded', loadKnowledge);
 
-        // 3. 确定当前语言
-        let currentLang = langParam || savedLang || 'zh';
-
-        // [关键修复]：如果 URL 带了参数，必须立刻存入 LocalStorage
-        // 这样下一个页面才能“记住”你的选择
-        if (langParam) {
-            localStorage.setItem('mediark_lang', langParam);
+    async function loadKnowledge() {
+        try {
+            var res = await fetch('/api/knowledge?cancer_type=esophageal');
+            if (!res.ok) throw new Error('加载失败');
+            var data = await res.json();
+            allEntries = data.items || [];
+        } catch (e) {
+            allEntries = [];
         }
 
-        // 4. 页面加载时执行翻译
-        document.addEventListener('DOMContentLoaded', () => {
-            applyLanguage(currentLang);
+        document.getElementById('stats-badge').textContent = allEntries.length + ' 条循证知识';
+        renderEntries(allEntries);
+    }
+
+    function filterByCategory(cat) {
+        currentCat = cat;
+        document.querySelectorAll('.cat-btn').forEach(function(btn) {
+            if (btn.dataset.cat === cat) {
+                btn.className = 'cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white';
+            } else {
+                btn.className = 'cat-btn px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200';
+            }
         });
+        filterEntries();
+    }
 
-        // --- 国际化字典 (保持你的字典内容不变，这里省略以节省篇幅) ---
-        // 请确保这里保留了 const i18n = { ... }; 的完整内容
-        // ...
-        // ...
-        
-        // --- 切换语言函数 ---
-        function toggleLang() {
-            currentLang = currentLang === 'zh' ? 'en' : 'zh';
-            localStorage.setItem('mediark_lang', currentLang); // 切换时保存
-            applyLanguage(currentLang);
+    function filterEntries() {
+        var q = document.getElementById('search-input').value.toLowerCase();
+        var filtered = allEntries.filter(function(e) {
+            if (currentCat && e.category !== currentCat) return false;
+            if (q && e.title.toLowerCase().indexOf(q) < 0 && (e.titleEn || '').toLowerCase().indexOf(q) < 0 && (e.summary || '').toLowerCase().indexOf(q) < 0) return false;
+            return true;
+        });
+        renderEntries(filtered);
+    }
+
+    function renderEntries(entries) {
+        var el = document.getElementById('entries-list');
+        if (!entries.length) {
+            el.innerHTML = '<p class="text-slate-400 text-sm py-8 text-center">未找到匹配的知识条目</p>';
+            return;
         }
+        el.innerHTML = entries.map(function(e) {
+            var catColor = categoryColors[e.category] || 'bg-slate-100 text-slate-600';
+            var catLabel = categoryLabels[e.category] || e.category;
+            var evBadge = e.evidenceLevel
+                ? '<span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded border border-amber-200">证据 ' + e.evidenceLevel + '</span>'
+                : '';
 
-        // --- 执行翻译函数 ---
-        function applyLanguage(lang) {
-            // 1. 更新按钮文字
-            const btnDisplay = document.getElementById('lang-display');
-            if(btnDisplay) btnDisplay.innerText = lang === 'zh' ? 'English' : '中文';
-            
-            // 2. 更新所有带 data-i18n 属性的文字
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang] && i18n[lang][key]) {
-                    if (el.tagName === 'INPUT' && el.hasAttribute('placeholder')) {
-                        el.placeholder = i18n[lang][key];
-                    } else {
-                        el.innerText = i18n[lang][key];
-                    }
-                }
+            return '<div class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer p-5" onclick="openEntry(' + e.id + ')">'
+                + '<div class="flex items-start justify-between gap-3 mb-2">'
+                + '<div class="flex items-center gap-2 flex-wrap">'
+                + '<span class="px-2 py-0.5 rounded text-xs font-bold ' + catColor + '">' + catLabel + '</span>'
+                + evBadge
+                + '<span class="text-xs text-slate-400">' + (e.source || '') + (e.year ? ' · ' + e.year : '') + '</span>'
+                + '</div>'
+                + '</div>'
+                + '<h4 class="font-bold text-slate-800 text-sm mb-1">' + e.title + '</h4>'
+                + (e.titleEn ? '<p class="text-xs text-slate-400 mb-2 italic">' + e.titleEn + '</p>' : '')
+                + '<p class="text-sm text-slate-600 line-clamp-2">' + (e.summary || '') + '</p>'
+                + (e.tags && e.tags.length ? '<div class="flex flex-wrap gap-1 mt-2">' + e.tags.slice(0, 5).map(function(t) { return '<span class="px-2 py-0.5 bg-slate-50 text-slate-500 text-[10px] rounded border border-slate-100">' + t + '</span>'; }).join('') + '</div>' : '')
+                + '</div>';
+        }).join('');
+    }
+
+    function openEntry(id) {
+        var e = allEntries.find(function(x) { return x.id === id; });
+        if (!e) return;
+
+        document.getElementById('modal-title').textContent = e.title;
+
+        var html = '';
+        // 元信息
+        var catColor = categoryColors[e.category] || 'bg-slate-100 text-slate-600';
+        var catLabel = categoryLabels[e.category] || e.category;
+        html += '<div class="flex items-center gap-2 flex-wrap mb-4">';
+        html += '<span class="px-2 py-0.5 rounded text-xs font-bold ' + catColor + '">' + catLabel + '</span>';
+        if (e.evidenceLevel) html += '<span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-bold rounded border border-amber-200">证据等级 ' + e.evidenceLevel + '</span>';
+        html += '<span class="text-xs text-slate-500">' + (e.source || '') + (e.year ? ' · ' + e.year : '') + '</span>';
+        if (e.authors) html += '<span class="text-xs text-slate-400">' + e.authors + '</span>';
+        html += '</div>';
+
+        if (e.titleEn) html += '<p class="text-sm text-slate-400 italic mb-3">' + e.titleEn + '</p>';
+
+        // 摘要
+        html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-4"><p class="text-sm text-slate-700 leading-relaxed">' + (e.summary || '') + '</p></div>';
+
+        // 核心要点
+        if (e.keyPoints && e.keyPoints.length) {
+            html += '<h4 class="font-bold text-slate-800 text-sm mb-2"><i class="fa-solid fa-list-check text-green-500 mr-1"></i> 核心要点</h4>';
+            html += '<div class="space-y-2 mb-4">';
+            e.keyPoints.forEach(function(p, i) {
+                html += '<div class="flex gap-2 items-start"><span class="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">' + (i + 1) + '</span><span class="text-sm text-slate-700">' + p + '</span></div>';
             });
-
-            // [进阶修复]：更新侧边栏的所有链接，让它们也带上参数 (双重保险)
-            // 这样鼠标悬停时就能看到 ?lang=en，体验更好
-            if (lang === 'en') {
-                const links = document.querySelectorAll('aside nav a');
-                links.forEach(link => {
-                    // 防止重复添加
-                    if (!link.href.includes('?lang=en')) {
-                        // 简单的处理：如果链接没有参数就加 ?，有就加 &
-                        const separator = link.href.includes('?') ? '&' : '?';
-                        link.href = link.href + separator + 'lang=en';
-                    }
-                });
-            }
+            html += '</div>';
         }
-        
-    </script>
+
+        // 标签
+        if (e.tags && e.tags.length) {
+            html += '<div class="flex flex-wrap gap-1 mt-3 pt-3 border-t border-slate-100">';
+            e.tags.forEach(function(t) { html += '<span class="px-2 py-1 bg-slate-50 text-slate-600 text-xs rounded border border-slate-200">' + t + '</span>'; });
+            html += '</div>';
+        }
+
+        // 链接
+        if (e.url) {
+            html += '<div class="mt-4 pt-3 border-t border-slate-100"><a href="' + e.url + '" target="_blank" rel="noopener" class="text-sm text-blue-600 hover:underline"><i class="fa-solid fa-up-right-from-square mr-1"></i>查看原始文献</a></div>';
+        }
+
+        document.getElementById('modal-body').innerHTML = html;
+        document.getElementById('detail-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    document.getElementById('detail-modal').addEventListener('click', function(ev) {
+        if (ev.target === this) closeModal();
+    });
+</script>
 </body>
 </html>

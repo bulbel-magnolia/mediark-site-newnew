@@ -143,32 +143,43 @@
                     <h3 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-2" data-i18n="lbl_base_info">基础临床信息</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_name">姓名</label>
-                            <input id="input-name" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例如：王小明" data-i18n-placeholder="ph_name_ex">
+                            <label class="block text-xs font-medium text-slate-500 mb-1">姓名</label>
+                            <input id="input-name" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="例如：张建国">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_id">病历号 (ID)</label>
-                            <input type="text"   disabled placeholder="系统自动生成" class="w-full border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-400" data-i18n-placeholder="ph_id_auto">
+                            <label class="block text-xs font-medium text-slate-500 mb-1">病历号 (ID)</label>
+                            <input type="text" disabled placeholder="系统自动生成" class="w-full border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-400">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_diag">主要诊断</label>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">主要诊断</label>
                             <select id="input-diagnosis" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none bg-white">
-                            <option value="食管鳞癌" data-i18n="opt_esop">食管鳞状细胞癌</option>
-                            <option value="肺腺癌" data-i18n="opt_lung">非小细胞肺癌</option>
-                            <option value="胃癌" data-i18n="opt_gas">胃癌</option>
-                            <option value="结直肠癌" data-i18n="opt_col">结直肠癌</option>
-                            <option value="乳腺癌" data-i18n="opt_bre">乳腺癌</option>
+                                <option value="食管鳞状细胞癌 (上段)">食管鳞癌 (上段/颈段)</option>
+                                <option value="食管鳞状细胞癌 (中段)">食管鳞癌 (中段)</option>
+                                <option value="食管鳞状细胞癌 (下段)">食管鳞癌 (下段)</option>
+                                <option value="食管腺癌">食管腺癌</option>
+                                <option value="食管胃交界部癌">食管胃交界部癌 (Siewert)</option>
+                                <option value="食管高级别上皮内瘤变">食管高级别上皮内瘤变 (早期)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-slate-500 mb-1" data-i18n="lbl_stage">当前治疗阶段</label>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">治疗阶段</label>
                             <select id="input-stage" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none bg-white">
-                            <option value="术后第1周" data-i18n="opt_s1">术后康复期 (第1周)</option>
-                            <option value="化疗期" data-i18n="opt_s2">围手术期化疗</option>
-                            <option value="放疗期" data-i18n="opt_s3">放射治疗中</option>
-                            <option value="靶向治疗中" data-i18n="opt_s4">靶向维持治疗</option>
-                            <option value="终末期" data-i18n="opt_s5">安宁疗护阶段</option>
+                                <option value="术前评估">术前评估/待手术</option>
+                                <option value="新辅助化疗中">新辅助化疗中</option>
+                                <option value="新辅助放化疗中">新辅助放化疗中</option>
+                                <option value="术后第1周">术后恢复期 (第1周)</option>
+                                <option value="术后2-4周">术后恢复期 (2-4周)</option>
+                                <option value="术后1-3个月">术后随访期 (1-3月)</option>
+                                <option value="术后辅助治疗">术后辅助化疗/免疫</option>
+                                <option value="根治性放化疗中">根治性放化疗中</option>
+                                <option value="免疫治疗中">免疫治疗维持</option>
+                                <option value="随访观察">定期随访观察</option>
+                                <option value="姑息治疗">姑息/最佳支持治疗</option>
                             </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-slate-500 mb-1">医生备注</label>
+                            <textarea id="input-notes" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="例如：Ivor-Lewis术后第7天，胃管已拔除..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -238,6 +249,7 @@
         }
     </style>
 
+<script src="js/app/toast.js"></script>
 <script src="js/app/sidebar.js"></script>
 <script>
     // 1. 数据定义：从后端 API 加载
@@ -488,7 +500,7 @@
     
     async function saveNewPatient() {
         var name = document.getElementById('input-name').value.trim();
-        if (!name) { alert(currentLang === 'zh' ? "请输入姓名" : "Please enter name"); return; }
+        if (!name) { toast.error(currentLang === 'zh' ? "请输入姓名" : "Please enter name"); return; }
         var diagnosis = document.getElementById('input-diagnosis').value;
         var stage = document.getElementById('input-stage').value;
         var tags = [];
@@ -510,7 +522,7 @@
             document.getElementById('input-name').value = "";
             document.querySelectorAll('#add-modal input[type="checkbox"]').forEach(function(c) { c.checked = false; });
         } catch (err) {
-            alert('保存失败：' + err.message);
+            toast.error('保存失败：' + err.message);
         }
     }
 </script>
