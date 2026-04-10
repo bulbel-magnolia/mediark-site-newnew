@@ -54,11 +54,14 @@ CREATE TABLE IF NOT EXISTS works (
   status TEXT NOT NULL,
   created_by INTEGER NOT NULL REFERENCES users(id),
   assigned_reviewer_id INTEGER REFERENCES users(id),
+  view_token TEXT,
+  view_count INTEGER NOT NULL DEFAULT 0,
   published_at TEXT,
   archived_at TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_works_view_token ON works(view_token);
 
 CREATE TABLE IF NOT EXISTS work_versions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -12,6 +12,7 @@ import { createUsersRouter } from "./routes/users.js";
 import { createPatientsRouter } from "./routes/patients.js";
 import { createWorksRouter } from "./routes/works.js";
 import { createKnowledgeRouter } from "./routes/knowledge.js";
+import { createPublicViewRouter } from "./routes/public-view.js";
 import { seedDatabase } from "./seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,6 +38,7 @@ export function createApp({ db = createDatabase(), disableStatic = false, genera
   app.use("/api/works", createWorksRouter({ db, auth, generationRuntime }));
   app.use("/api/library", createLibraryRouter({ db }));
   app.use("/api/knowledge", createKnowledgeRouter({ db, auth }));
+  app.use("/api/public/view", createPublicViewRouter({ db }));
 
   app.use((error, _req, res, _next) => {
     console.error(error);
@@ -47,6 +49,10 @@ export function createApp({ db = createDatabase(), disableStatic = false, genera
     app.use(express.static(PROJECT_ROOT));
     app.get("/", (_req, res) => {
       res.sendFile(path.join(PROJECT_ROOT, "index.html"));
+    });
+    // 公开访问链接：/view/:token → 返回 view.html，由前端 fetch 数据
+    app.get("/view/:token", (_req, res) => {
+      res.sendFile(path.join(PROJECT_ROOT, "view.html"));
     });
   }
 

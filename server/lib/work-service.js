@@ -1,4 +1,10 @@
+import { randomBytes } from "node:crypto";
+
 import { all, fromJson, get, nowIso, run, toJson, transaction } from "../db.js";
+
+function generateViewToken() {
+  return randomBytes(12).toString("base64url");
+}
 
 function hydrateSchemaVersion(row) {
   if (!row) {
@@ -358,6 +364,8 @@ function hydrateWork(db, row) {
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
     archivedAt: row.archived_at,
+    viewToken: row.view_token || null,
+    viewCount: row.view_count || 0,
     schema: {
       id: row.schema_id,
       slug: row.schema_slug,
@@ -600,16 +608,22 @@ export const appendGeneratedWorkVersion = transaction(function appendGeneratedWo
 export const publishWork = transaction(function publishWorkTx(db, workId, actorId, note = "") {
   const latestVersion = getLatestWorkVersionRow(db, workId);
 
+  // 首次发布时生成 view token（用于公开访问链接）
+  const existing = get(db, "SELECT view_token FROM works WHERE id = :workId", { workId });
+  const viewToken = existing?.view_token || generateViewToken();
+
   run(
     db,
     `UPDATE works
         SET status = 'published',
+            view_token = :viewToken,
             published_at = :publishedAt,
             archived_at = NULL,
             updated_at = :updatedAt
       WHERE id = :workId`,
     {
       workId,
+      viewToken,
       publishedAt: nowIso(),
       updatedAt: nowIso()
     }

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>我的科普指南 - 智瘤方舟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 180px, #f8fafc 100%);
+            min-height: 100vh;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #1e293b;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .list-item {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+        }
+        .do-item { background: #ecfdf5; color: #065f46; }
+        .avoid-item { background: #fef3c7; color: #92400e; }
+        .flag-item { background: #fef2f2; color: #991b1b; border-left: 4px solid #dc2626; }
+        .fab-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 999px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        .fab-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1d4ed8;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: #eff6ff;
+        }
+        details summary {
+            list-style: none;
+            cursor: pointer;
+        }
+        details summary::-webkit-details-marker { display: none; }
+        details[open] summary i.fa-chevron-down { transform: rotate(180deg); }
+        details summary i.fa-chevron-down { transition: transform 0.2s; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <i class="fa fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+            <p class="text-slate-500">正在加载您的专属指南...</p>
+        </div>
+    </div>
+
+    <div id="error-box" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="text-center">
+            <i class="fa fa-exclamation-circle text-5xl text-slate-300 mb-4"></i>
+            <p class="text-lg font-semibold text-slate-700 mb-2">作品未找到</p>
+            <p class="text-sm text-slate-500" id="error-msg">请联系您的主管医生获取新的访问链接</p>
+        </div>
+    </div>
+
+    <main id="content" class="hidden pb-32">
+        <!-- 顶部个性化问候 -->
+        <header class="px-5 pt-6 pb-4">
+            <div class="flex items-center gap-2 text-xs text-blue-600 font-semibold mb-2">
+                <i class="fa fa-stethoscope"></i>
+                <span>主管医生为您定制</span>
+            </div>
+            <h1 id="greeting" class="text-2xl font-bold text-slate-800"></h1>
+            <p id="subtitle" class="text-sm text-slate-500 mt-1"></p>
+        </header>
+
+        <div class="px-5">
+            <!-- 一句话核心 -->
+            <div class="card p-5 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <div class="flex items-center gap-2 mb-2 opacity-90">
+                    <i class="fa fa-lightbulb-o"></i>
+                    <span class="text-sm font-medium">一句话要点</span>
+                </div>
+                <p id="one-sentence" class="text-xl font-bold leading-snug"></p>
+            </div>
+
+            <!-- 海报图 -->
+            <div id="poster-card" class="card hidden">
+                <img id="poster-img" src="" alt="海报" class="w-full block">
+            </div>
+
+            <!-- 建议这样做 -->
+            <div id="do-card" class="card p-5 hidden">
+                <h2 class="section-title text-emerald-700">
+                    <i class="fa fa-check-circle"></i> 建议这样做
+                </h2>
+                <div id="do-list"></div>
+            </div>
+
+            <!-- 尽量避免 -->
+            <div id="avoid-card" class="card p-5 hidden">
+                <h2 class="section-title text-amber-700">
+                    <i class="fa fa-exclamation-triangle"></i> 尽量避免
+                </h2>
+                <div id="avoid-list"></div>
+            </div>
+
+            <!-- 危险信号 -->
+            <div id="flag-card" class="card p-5 hidden border-2 border-red-200">
+                <h2 class="section-title text-red-700">
+                    <i class="fa fa-ambulance"></i> 危险信号 — 立即就医
+                </h2>
+                <div id="flag-list"></div>
+                <a href="tel:120" class="mt-3 inline-flex items-center gap-2 bg-red-600 text-white font-bold px-5 py-3 rounded-full text-sm w-full justify-center">
+                    <i class="fa fa-phone"></i> 紧急情况拨打 120
+                </a>
+            </div>
+
+            <!-- 视频 -->
+            <div id="video-card" class="card p-5 hidden">
+                <h2 class="section-title text-purple-700">
+                    <i class="fa fa-film"></i> 视频讲解
+                </h2>
+                <div id="video-container"></div>
+            </div>
+
+            <!-- 配图 -->
+            <div id="images-card" class="card p-5 hidden">
+                <h2 class="section-title text-blue-700">
+                    <i class="fa fa-image"></i> 配图
+                </h2>
+                <div id="images-container" class="grid grid-cols-1 gap-3"></div>
+            </div>
+
+            <!-- 常见问题 FAQ -->
+            <div id="faq-card" class="card p-5 hidden">
+                <h2 class="section-title text-slate-700">
+                    <i class="fa fa-question-circle"></i> 常见问题
+                </h2>
+                <div id="faq-list"></div>
+            </div>
+
+            <!-- 底部医生署名 -->
+            <div class="card p-5 bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <i class="fa fa-user-md text-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-slate-500">主管医生</p>
+                        <p class="font-bold text-slate-800" id="doctor-name">-</p>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 mt-3 text-center">
+                    由 <strong>智瘤方舟 MediArk</strong> 平台基于循证医学生成 · 仅供参考，请以医生意见为准
+                </p>
+            </div>
+        </div>
+
+        <!-- 悬浮操作栏 -->
+        <div class="fab-bar">
+            <button onclick="shareToFamily()" class="fab-btn">
+                <i class="fa fa-share-alt"></i> 分享给家人
+            </button>
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="fab-btn">
+                <i class="fa fa-arrow-up"></i> 顶部
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // 从 URL 提取 token
+        var pathParts = window.location.pathname.split('/').filter(Boolean);
+        var token = pathParts[pathParts.length - 1];
+
+        var data = null;
+
+        async function loadContent() {
+            try {
+                var res = await fetch('/api/public/view/' + token);
+                if (!res.ok) {
+                    var err = await res.json().catch(function() { return {}; });
+                    throw new Error(err.error || '加载失败 (' + res.status + ')');
+                }
+                data = await res.json();
+                renderContent(data);
+            } catch (err) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error-box').classList.remove('hidden');
+                document.getElementById('error-msg').textContent = err.message || '请联系您的主管医生';
+            }
+        }
+
+        function renderContent(d) {
+            // 顶部问候
+            var patientName = d.patient?.name || '您';
+            document.getElementById('greeting').textContent = patientName + '，您好 👋';
+            document.getElementById('subtitle').textContent = d.title || '您的专属科普指南';
+
+            // 一句话核心
+            var oneSentence = d.copyMaster?.one_sentence_takeaway || d.copyMaster?.short_summary || '请遵医嘱认真执行各项建议';
+            document.getElementById('one-sentence').textContent = oneSentence;
+
+            // 海报
+            var heroImage = d.posterPayload?.heroImage;
+            if (heroImage && (heroImage.startsWith('http') || heroImage.startsWith('data:'))) {
+                document.getElementById('poster-card').classList.remove('hidden');
+                document.getElementById('poster-img').src = heroImage;
+            }
+
+            // 建议这样做
+            var doList = d.clinicalCore?.must_do || [];
+            if (doList.length) {
+                document.getElementById('do-card').classList.remove('hidden');
+                document.getElementById('do-list').innerHTML = doList.map(function(item) {
+                    return '<div class="list-item do-item"><i class="fa fa-check-circle text-emerald-500 mt-0.5"></i><span class="flex-1">' + escapeHtml(item) + '</span></div>';
+                }).join('');
+            }
+
+            // 尽量避免
+            var avoidList = d.clinicalCore?.must_avoid || [];
+            if (avoidList.length) {
+                document.getElementById('avoid-card').classList.remove('hidden');
+                document.getElementById('avoid-list').innerHTML = avoidList.map(function(item) {
+                    return '<div class="list-item avoid-item"><i class="fa fa-times-circle text-amber-500 mt-0.5"></i><span class="flex-1">' + escapeHtml(item) + '</span></div>';
+                }).join('');
+            }
+
+            // 危险信号
+            var flagList = d.clinicalCore?.red_flags || [];
+            if (flagList.length) {
+                document.getElementById('flag-card').classList.remove('hidden');
+                document.getElementById('flag-list').innerHTML = flagList.map(function(item) {
+                    return '<div class="list-item flag-item"><i class="fa fa-exclamation-circle text-red-500 mt-0.5"></i><span class="flex-1">' + escapeHtml(item) + '</span></div>';
+                }).join('');
+            }
+
+            // 视频
+            var videoAsset = (d.assets || []).find(function(a) { return a.type === 'video' && a.url; });
+            if (videoAsset) {
+                document.getElementById('video-card').classList.remove('hidden');
+                document.getElementById('video-container').innerHTML = '<video controls playsinline class="w-full rounded-lg" src="' + videoAsset.url + '"></video>';
+            }
+
+            // 配图
+            var imageAssets = (d.assets || []).filter(function(a) { return a.type === 'image' && a.url; });
+            if (imageAssets.length) {
+                document.getElementById('images-card').classList.remove('hidden');
+                document.getElementById('images-container').innerHTML = imageAssets.map(function(a) {
+                    return '<img src="' + a.url + '" alt="" class="w-full rounded-lg">';
+                }).join('');
+            }
+
+            // FAQ
+            var faqList = d.clinicalCore?.faq || [];
+            if (faqList.length) {
+                document.getElementById('faq-card').classList.remove('hidden');
+                document.getElementById('faq-list').innerHTML = faqList.map(function(qa) {
+                    return '<details class="border-b border-slate-100 py-3">'
+                        + '<summary class="flex items-start gap-2"><i class="fa fa-chevron-down text-blue-500 mt-1"></i><span class="flex-1 font-semibold text-slate-800">' + escapeHtml(qa.q || '') + '</span></summary>'
+                        + '<p class="mt-2 ml-6 text-slate-600 text-sm leading-relaxed">' + escapeHtml(qa.a || '') + '</p>'
+                        + '</details>';
+                }).join('');
+            }
+
+            // 医生署名
+            document.getElementById('doctor-name').textContent = d.doctorName || '主管医生';
+
+            // 显示主内容
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+        }
+
+        function escapeHtml(s) {
+            return String(s || '').replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        function shareToFamily() {
+            var url = window.location.href;
+            if (navigator.share) {
+                navigator.share({ title: data?.title || '科普指南', text: '医生为我准备的科普内容', url: url }).catch(function() {});
+            } else {
+                navigator.clipboard.writeText(url).then(function() {
+                    alert('链接已复制，粘贴给家人即可');
+                }).catch(function() {
+                    prompt('请复制下方链接发送给家人：', url);
+                });
+            }
+        }
+
+        loadContent();
+    </script>
+</body>
+</html>

@@ -489,6 +489,9 @@ function seedKnowledge(db) {
 
 function ensureMigrations(db) {
   try { db.exec("ALTER TABLE patients ADD COLUMN cancer_type TEXT NOT NULL DEFAULT 'esophageal'"); } catch { /* column already exists */ }
+  try { db.exec("ALTER TABLE works ADD COLUMN view_token TEXT"); } catch { /* column already exists */ }
+  try { db.exec("ALTER TABLE works ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_works_view_token ON works(view_token)"); } catch {}
 }
 
 function seedClinicalDefaults(db) {
