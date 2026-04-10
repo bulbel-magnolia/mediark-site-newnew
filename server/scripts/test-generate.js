@@ -1,21 +1,38 @@
 // Direct generation tester — calls generateWorkBundle() with poster format
 // Usage: node server/scripts/test-generate.js
+// IMPORTANT: loads .env BEFORE importing any app modules
 
-import { createDatabase } from "../db.js";
-import { seedDatabase } from "../seed.js";
-import { generateWorkBundle } from "../lib/generate-work.js";
-import { loadEnvFile } from "node:process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-try {
-  loadEnvFile(".env");
-} catch {
-  // ignore if already loaded
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.resolve(__dirname, "..", "..", ".env");
+
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq > 0) {
+      const key = trimmed.slice(0, eq).trim();
+      const val = trimmed.slice(eq + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
+  }
+  console.log(`Loaded .env (${Object.keys(process.env).filter(k => k.startsWith("MEDIARK_")).length} MEDIARK_* vars)`);
+  console.log(`Mode: ${process.env.MEDIARK_MODE}`);
 }
+
+// Now dynamic import with env already set
+const { createDatabase } = await import("../db.js");
+const { seedDatabase } = await import("../seed.js");
+const { generateWorkBundle } = await import("../lib/generate-work.js");
 
 const db = createDatabase();
 seedDatabase(db);
 
-console.log("Running generateWorkBundle with poster-text format...\n");
+console.log("\nRunning generateWorkBundle with poster-text format...\n");
 
 const result = await generateWorkBundle({
   input: {
@@ -39,9 +56,9 @@ const result = await generateWorkBundle({
 const master = result.bundle.masterJson;
 const images = master.artifacts.images;
 
+console.log(`bundle.mode: ${result.bundle.mode}`);
 console.log(`normalized enabledFormats: ${JSON.stringify(result.input.enabledFormats)}`);
 console.log(`image_spec.assets count: ${(master.spec.image_spec?.assets || []).length}`);
-console.log(`image_spec.assets:`, JSON.stringify(master.spec.image_spec?.assets?.map(a => ({id: a.id, role: a.role})), null, 2));
 console.log(`status.image_generation: ${master.status.image_generation}`);
 console.log(`\nImage count: ${images.length}`);
 for (const img of images) {
