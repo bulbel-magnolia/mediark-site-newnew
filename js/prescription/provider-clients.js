@@ -147,15 +147,16 @@ function resolveImagePath(data = {}) {
 }
 
 function resolveImageSize(asset = {}) {
+  // Seedream 5.0 要求最小 3,686,400 像素
   if (asset.aspect_ratio === "16:9") {
-    return "1920x1080";
+    return "2560x1440";
   }
 
   if (asset.aspect_ratio === "4:5") {
-    return "1024x1280";
+    return "1920x2400";
   }
 
-  return "1024x1024";
+  return "2048x2048";
 }
 
 function normalizeDurationSec(value) {
