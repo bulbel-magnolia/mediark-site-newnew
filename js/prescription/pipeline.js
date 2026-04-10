@@ -3,7 +3,30 @@ import { buildMasterJson } from "./master-schema.js";
 import { buildEvidenceBundle, buildMockArtifacts } from "./mock-data.js";
 import { buildPosterPayload } from "./poster-renderer.js";
 import { applyCopyRefinement, buildTextRefinementPrompt } from "./live-refinement.js";
+import { interpretPatientProfile } from "./profile-interpreter.js";
 import { requestImageGeneration, requestTextRefinement, requestVideoGeneration } from "./provider-clients.js";
+
+// 把 patient profile 翻译成给图片模型的风格提示（简短英文词条）
+function profileToImageStyleHints(profile) {
+  const hints = [];
+  if (profile.literacy === "plain") hints.push("simple composition, clear direct visual metaphors");
+  if (profile.literacy === "advanced") hints.push("detailed clinical accuracy, data-rich scene");
+  if (profile.tone === "reassuring") hints.push("warm hopeful atmosphere, soft natural lighting");
+  if (profile.tone === "gentle") hints.push("calm gentle mood, soft pastel tones");
+  if (profile.formatPreference === "video") hints.push("dynamic composition suitable for motion");
+  if (profile.formatPreference === "poster") hints.push("bold poster-friendly layout with ample negative space");
+  return hints.join(", ");
+}
+
+// 把 patient profile 翻译成给视频模型的风格提示
+function profileToVideoStyleHints(profile) {
+  const hints = [];
+  if (profile.literacy === "plain") hints.push("slow-paced, simple visual beats, 1 idea per shot");
+  if (profile.literacy === "advanced") hints.push("informative data visualization, medical infographic style");
+  if (profile.tone === "reassuring") hints.push("warm reassuring atmosphere, soft transitions");
+  if (profile.formatPreference === "video") hints.push("short-form vertical-friendly pacing, attention-grabbing opening");
+  return hints.join(", ");
+}
 
 function buildEvidenceContextSnippet(evidence = [], maxLength = 120) {
   if (!evidence.length) return "";
@@ -27,21 +50,29 @@ function buildEvidenceContextSnippet(evidence = [], maxLength = 120) {
   return snippet.length <= maxLength ? snippet : `${snippet.slice(0, maxLength - 1)}…`;
 }
 
-function createImageSpec(patient, focusTopics = [], evidence = []) {
+function createImageSpec(patient, focusTopics = [], evidence = [], profile = null) {
   const primaryTopic = focusTopics[0] || "recovery education";
   const diagnosis = patient?.diagnosis || "oncology recovery";
   const evidenceContext = buildEvidenceContextSnippet(evidence, 100);
   const contextClause = evidenceContext ? `, clinical context: ${evidenceContext}` : "";
+  const profileHints = profile ? profileToImageStyleHints(profile) : "";
+  const profileClause = profileHints ? `, ${profileHints}` : "";
+
+  // 根据 profile 调整调色板
+  let palette = ["#0F4C81", "#D9EAF7", "#F7FBFF"];
+  if (profile?.tone === "reassuring" || profile?.tone === "gentle") {
+    palette = ["#2563eb", "#dbeafe", "#fef3c7"]; // 更温暖
+  }
 
   return {
     style: "clinical_education_first",
-    palette: ["#0F4C81", "#D9EAF7", "#F7FBFF"],
+    palette,
     assets: [
       {
         id: "hero_image",
         role: "poster_hero",
         purpose: "Poster hero visual",
-        prompt: `A realistic patient education poster scene for ${diagnosis}, focused on ${primaryTopic}${contextClause}, warm clinical lighting, calm hospital counseling moment, clean background, no text overlay.`,
+        prompt: `A realistic patient education poster scene for ${diagnosis}, focused on ${primaryTopic}${contextClause}${profileClause}, warm clinical lighting, calm hospital counseling moment, clean background, no text overlay.`,
         negative_prompt: "blood, surgery close-up, distorted body, extra fingers, horror, text overlay",
         aspect_ratio: "4:5"
       },
@@ -49,7 +80,7 @@ function createImageSpec(patient, focusTopics = [], evidence = []) {
         id: "scene_reference",
         role: "video_reference",
         purpose: "Short video reference frame",
-        prompt: `A realistic short-form clinical education scene for ${diagnosis}, focused on ${primaryTopic}${contextClause}, doctor or nurse explaining recovery steps to a patient, steady composition, no text overlay.`,
+        prompt: `A realistic short-form clinical education scene for ${diagnosis}, focused on ${primaryTopic}${contextClause}${profileClause}, doctor or nurse explaining recovery steps to a patient, steady composition, no text overlay.`,
         negative_prompt: "horror, distorted face, extra limbs, surreal objects, text overlay",
         aspect_ratio: "16:9"
       }
@@ -57,13 +88,15 @@ function createImageSpec(patient, focusTopics = [], evidence = []) {
   };
 }
 
-function createVideoSpec(patient, focusTopics = [], formInput = {}, evidence = []) {
+function createVideoSpec(patient, focusTopics = [], formInput = {}, evidence = [], profile = null) {
   const message = focusTopics.join(", ") || "recovery education";
   const stage = patient?.stage || "recovery";
   const diagnosis = patient?.diagnosis || "recovery care";
   const requestedDurationSec = Number(formInput?.videoDurationSec);
   const evidenceContext = buildEvidenceContextSnippet(evidence, 150);
   const contextClause = evidenceContext ? `, key guidance: ${evidenceContext}` : "";
+  const profileHints = profile ? profileToVideoStyleHints(profile) : "";
+  const profileClause = profileHints ? `, ${profileHints}` : "";
 
   return {
     ...(Number.isFinite(requestedDurationSec) && requestedDurationSec > 0
@@ -73,13 +106,13 @@ function createVideoSpec(patient, focusTopics = [], formInput = {}, evidence = [
       {
         id: "shot_1",
         reference_asset_id: "scene_reference",
-        motion_prompt: `Animated clinical education scene about ${diagnosis} during ${stage}${contextClause}, blue and white infographic style, gentle camera motion, icon-led recovery guidance, emphasize ${message}, no surgery, no blood, no invasive procedures, no text overlay.`,
+        motion_prompt: `Animated clinical education scene about ${diagnosis} during ${stage}${contextClause}${profileClause}, blue and white infographic style, gentle camera motion, icon-led recovery guidance, emphasize ${message}, no surgery, no blood, no invasive procedures, no text overlay.`,
         caption: `${stage}: ${message}`
       },
       {
         id: "shot_2",
         reference_asset_id: "hero_image",
-        motion_prompt: `Medical explainer animation highlighting ${message}${contextClause}, clean clinical atmosphere, calm educational visual language, infographic motion graphics, no sensitive treatment content, no text overlay.`,
+        motion_prompt: `Medical explainer animation highlighting ${message}${contextClause}${profileClause}, clean clinical atmosphere, calm educational visual language, infographic motion graphics, no sensitive treatment content, no text overlay.`,
         caption: `Key education points: ${message}`
       }
     ]
@@ -394,11 +427,14 @@ export async function generatePrescriptionBundle({ patient, formInput, runtime =
 
   let masterJson = buildMasterJson({ patient, formInput, evidence, clinicalDefaults: clinicalDefaultsOverride });
 
+  // 解释患者画像，一次性供给图片/视频/文本 prompt 共享
+  const profile = interpretPatientProfile(patient?.tags, patient?.notes);
+
   masterJson.spec.image_spec = (formats.image || formats.poster)
-    ? createImageSpec(patient, formInput.focusTopics, evidence)
+    ? createImageSpec(patient, formInput.focusTopics, evidence, profile)
     : { assets: [] };
   masterJson.spec.video_spec = formats.video
-    ? createVideoSpec(patient, formInput.focusTopics, formInput, evidence)
+    ? createVideoSpec(patient, formInput.focusTopics, formInput, evidence, profile)
     : { shots: [] };
   masterJson.spec.audio_spec = {
     voice_style: "warm_clinical",

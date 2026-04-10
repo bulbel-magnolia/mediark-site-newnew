@@ -67,7 +67,7 @@ export function createPatientsRouter({ db, auth }) {
     }
 
     const diagnosis = String(req.body?.diagnosis || "").trim();
-    const cancerType = String(req.body?.cancerType || "").trim() || inferCancerType(diagnosis);
+    const cancerType = String(req.body?.cancerType || "").trim() || inferCancerType(diagnosis) || "esophageal";
 
     const result = run(
       db,
@@ -108,7 +108,7 @@ export function createPatientsRouter({ db, auth }) {
       updates.push("diagnosis = :diagnosis");
       params.diagnosis = String(req.body.diagnosis).trim();
       updates.push("cancer_type = :cancerType");
-      params.cancerType = String(req.body?.cancerType || "").trim() || inferCancerType(params.diagnosis);
+      params.cancerType = String(req.body?.cancerType || "").trim() || inferCancerType(params.diagnosis) || "esophageal";
     }
     if (req.body?.stage !== undefined) { updates.push("stage = :stage"); params.stage = String(req.body.stage).trim(); }
     if (req.body?.tags !== undefined) { updates.push("tags_json = :tagsJson"); params.tagsJson = toJson(Array.isArray(req.body.tags) ? req.body.tags : []); }

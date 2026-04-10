@@ -73,7 +73,10 @@
             <!-- Tab 切换：我创建的 / 待我审核 -->
             <div class="flex gap-2 mb-6">
                 <button id="tab-mine" onclick="switchTab('mine')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition">我创建的</button>
-                <button id="tab-review" onclick="switchTab('review')" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">待我审核</button>
+                <button id="tab-review" onclick="switchTab('review')" class="relative px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">
+                    待我审核
+                    <span id="review-badge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md">0</span>
+                </button>
                 <!-- 状态筛选 -->
                 <select id="status-filter" onchange="loadWorks()" class="ml-auto px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
                     <option value="">全部状态</option>
@@ -132,9 +135,26 @@
             ? 'px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition'
             : 'px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition';
         document.getElementById('tab-review').className = tab === 'review'
-            ? 'px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition'
-            : 'px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition';
+            ? 'relative px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white transition'
+            : 'relative px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition';
         loadWorks();
+    }
+
+    // 拉取待审核数量并更新徽章
+    async function refreshReviewBadge() {
+        try {
+            var res = await fetch('/api/works?role=reviewer&status=pending_review', { credentials: 'include' });
+            if (!res.ok) return;
+            var data = await res.json();
+            var count = (data.items || []).length;
+            var badge = document.getElementById('review-badge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        } catch (e) { /* silent */ }
     }
 
     async function loadWorks() {
@@ -265,6 +285,7 @@
                 throw new Error(err.error || '操作失败');
             }
             loadWorks();
+            refreshReviewBadge();
             closeDetail();
         } catch (err) {
             toast.error(err.message);
@@ -272,17 +293,21 @@
     }
 
     async function submitReview(workId) {
+        var note = prompt('请简要说明需要审核的重点（可选）：', '');
+        if (note === null) return;
         try {
             var res = await fetch('/api/works/' + workId + '/submit-review', {
                 method: 'POST', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
+                body: JSON.stringify({ note: note || '' })
             });
             if (!res.ok) {
                 var err = await res.json().catch(function() { return {}; });
                 throw new Error(err.error || '提交失败');
             }
             loadWorks();
+            refreshReviewBadge();
+            if (window.toast) toast.success('已提交审核');
         } catch (err) {
             toast.error(err.message);
         }
@@ -482,6 +507,9 @@
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {
         loadWorks();
+        refreshReviewBadge();
+        // 每分钟刷新一次徽章
+        setInterval(refreshReviewBadge, 60000);
     });
 </script>
 </body>

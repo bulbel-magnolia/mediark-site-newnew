@@ -79,10 +79,7 @@
                         <label for="cancer-type-filter" class="block text-sm font-medium text-gray-700">癌症类型</label>
                         <select id="cancer-type-filter" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                             <option value="">所有癌症类型</option>
-                            <option value="esophageal">食管癌</option>
-                            <option value="lung">肺癌</option>
-                            <option value="gastric">胃癌</option>
-                            <option value="general">通用科普</option>
+                            <!-- 由 JS 动态填充（根据 allWorks 去重） -->
                         </select>
                     </div>
                     <div>
@@ -196,6 +193,21 @@
             purpose: 'bg-pink-100 text-pink-800'
         };
 
+        // 癌种代码 → 中文显示名。未映射的代码会用原值（不硬编码列表，只做美化）
+        const CANCER_TYPE_LABELS = {
+            esophageal: '食管癌',
+            lung: '肺癌',
+            gastric: '胃癌',
+            colorectal: '结直肠癌',
+            liver: '肝癌',
+            pancreatic: '胰腺癌',
+            breast: '乳腺癌',
+            general: '通用科普'
+        };
+        function cancerTypeLabel(code) {
+            return CANCER_TYPE_LABELS[code] || code || '未分类';
+        }
+
         // --- 渲染函数 ---
         function renderWorks(workList) {
             resultsGrid.innerHTML = '';
@@ -237,6 +249,24 @@
                         </div>
                     </div>
                 `;
+            });
+        }
+
+        // 根据当前加载的作品动态填充癌种筛选下拉
+        function populateCancerTypeFilter() {
+            const types = new Set();
+            allWorks.forEach(w => {
+                if (w.cancerType) types.add(w.cancerType);
+            });
+            const select = document.getElementById('cancer-type-filter');
+            // 保留第一个 "所有癌症类型" 选项，清除其他
+            while (select.options.length > 1) select.remove(1);
+            // 按字母序排序后填充
+            [...types].sort().forEach(code => {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = cancerTypeLabel(code);
+                select.appendChild(opt);
             });
         }
 
@@ -412,6 +442,10 @@
             // API 作品 ID 加前缀避免与静态 ID 冲突
             apiWorks.forEach(w => { w.id = 'api-' + w.id; });
             allWorks = [...apiWorks, ...staticWorks];
+
+            // 动态填充癌症类型筛选下拉（只列出实际有作品的癌种）
+            populateCancerTypeFilter();
+
             applyFilters();
 
             // 二维码扫码跳转：自动打开指定作品
