@@ -30,7 +30,13 @@ const { createApp } = await import("./app.js");
 const app = createApp();
 const port = Number(process.env.PORT || 3000);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`MediArk server listening on http://localhost:${port}`);
   console.log(`Mode: ${process.env.MEDIARK_MODE || "未设置 (默认 mock)"}`);
 });
+
+// AI 生成流程可能需要 3-5 分钟，加长各项超时避免 502
+server.requestTimeout = 600000;  // 10 分钟
+server.headersTimeout = 610000;
+server.keepAliveTimeout = 600000;
+server.timeout = 600000;
