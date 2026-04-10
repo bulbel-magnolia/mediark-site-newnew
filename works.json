@@ -8,7 +8,8 @@
     "topic": "HPV",
     "format": "视频",
     "audience": "普通大众",
-    "purpose": "疾病预防"
+    "purpose": "疾病预防",
+    "cancerType": "general"
   },
   {
     "id": 2,
@@ -19,7 +20,8 @@
     "topic": "HPV,疫苗",
     "format": "漫画",
     "audience": "普通大众",
-    "purpose": "疾病预防"
+    "purpose": "疾病预防",
+    "cancerType": "general"
   },
   {
     "id": 3,
@@ -30,7 +32,8 @@
     "topic": "肿瘤,免疫疗法",
     "format": "图片",
     "audience": "患者本人,基层医生",
-    "purpose": "治疗方案"
+    "purpose": "治疗方案",
+    "cancerType": "general"
   },
   {
     "id": 4,
@@ -41,7 +44,8 @@
     "topic": "干细胞",
     "format": "视频",
     "audience": "普通大众,患者本人",
-    "purpose": "康复指导"
+    "purpose": "康复指导",
+    "cancerType": "general"
   },
   {
     "id": 5,
@@ -52,18 +56,20 @@
     "topic": "HPV",
     "format": "视频",
     "audience": "普通大众,患者本人",
-    "purpose": "疾病预防"
+    "purpose": "疾病预防",
+    "cancerType": "general"
   },
   {
     "id": 6,
-    "title": "男性接种HPV疫苗？——你所不知道的那些事（最终版）",
+    "title": "男性接种HPV疫苗？——你所不知道的那些事(最终版)",
     "image": "科普作品素材库/封面图存放文件夹/男性接种HPV疫苗？——你所不知道的那些事（最终版）.png",
     "type": "pdf",
     "contentUrl": "科普作品素材库/内容文件夹/男性接种HPV疫苗？——你所不知道的那些事（最终版）.pdf",
     "topic": "HPV,疫苗",
     "format": "漫画",
     "audience": "普通大众",
-    "purpose": "疾病预防"
+    "purpose": "疾病预防",
+    "cancerType": "general"
   },
   {
     "id": 7,
@@ -74,7 +80,8 @@
     "topic": "肿瘤,疫苗",
     "format": "图片",
     "audience": "患者本人,基层医生",
-    "purpose": "诊断解读,治疗方案"
+    "purpose": "诊断解读,治疗方案",
+    "cancerType": "general"
   },
   {
     "id": 8,
@@ -85,7 +92,8 @@
     "topic": "肿瘤,疫苗",
     "format": "漫画",
     "audience": "基层大众,患者本人",
-    "purpose": "诊断解读,治疗方案"
+    "purpose": "诊断解读,治疗方案",
+    "cancerType": "general"
   },
   {
     "id": 9,
@@ -96,7 +104,8 @@
     "topic": "肿瘤,治疗",
     "format": "图片",
     "audience": "患者本人,基层大众",
-    "purpose": "诊断解读,治疗方案"
+    "purpose": "诊断解读,治疗方案",
+    "cancerType": "general"
   },
   {
     "id": 10,
@@ -107,6 +116,7 @@
     "topic": "干细胞",
     "format": "视频",
     "audience": "基层医生,医学生",
-    "purpose": "前沿进展"
+    "purpose": "前沿进展",
+    "cancerType": "general"
   }
 ]

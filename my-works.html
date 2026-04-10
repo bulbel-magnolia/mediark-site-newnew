@@ -27,6 +27,9 @@
             <span class="font-bold text-lg tracking-wide">MediArk</span>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="index.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition border-b border-slate-800 pb-3 mb-2">
+                <i class="fa-solid fa-house w-5"></i><span>回到主页</span>
+            </a>
             <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition">
                 <i class="fa-solid fa-chart-pie w-5"></i><span>工作台</span>
             </a>
@@ -212,7 +215,13 @@
             html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">发布到作品库</button>';
         } else if (s === 'published') {
             html += '<a href="library.html" class="flex-1 px-2 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition text-center">查看作品库</a>';
-            html += '<button onclick="showQRCode(' + work.id + ',\'' + (work.title || '').replace(/'/g, "\\'") + '\')" class="px-2 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition"><i class="fa-solid fa-qrcode"></i></button>';
+            html += '<button onclick="showQRCode(' + work.id + ',\'' + (work.title || '').replace(/'/g, "\\'") + '\')" class="px-2 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition" title="患者扫码查看"><i class="fa-solid fa-qrcode"></i></button>';
+        } else if (s === 'archived') {
+            // 归档作品如果曾经发布过，仍可显示二维码
+            if (work.viewToken) {
+                html += '<button onclick="showQRCode(' + work.id + ',\'' + (work.title || '').replace(/'/g, "\\'") + '\')" class="flex-1 px-2 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition" title="患者扫码查看"><i class="fa-solid fa-qrcode mr-1"></i>患者扫码</button>';
+            }
+            html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">重新发布</button>';
         } else if (s === 'changes_requested') {
             html += '<button onclick="openDetail(' + work.id + ')" class="flex-1 px-2 py-1.5 bg-amber-50 text-amber-700 rounded text-xs font-medium hover:bg-amber-100 transition">查看意见</button>';
         }

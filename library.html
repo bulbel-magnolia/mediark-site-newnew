@@ -70,10 +70,20 @@
                 </div>
 
                 <div data-aos="fade-up" data-aos-delay="200" class="bg-white p-6 rounded-xl shadow-lg mb-12 sticky top-24 z-40">
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
                     <div class="lg:col-span-2">
                         <label for="search-input" class="block text-sm font-medium text-gray-700">关键词检索 (标题)</label>
                         <input type="text" id="search-input" placeholder="例如：免疫治疗, CAR-T" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="cancer-type-filter" class="block text-sm font-medium text-gray-700">癌症类型</label>
+                        <select id="cancer-type-filter" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">所有癌症类型</option>
+                            <option value="esophageal">食管癌</option>
+                            <option value="lung">肺癌</option>
+                            <option value="gastric">胃癌</option>
+                            <option value="general">通用科普</option>
+                        </select>
                     </div>
                     <div>
                         <label for="topic-filter" class="block text-sm font-medium text-gray-700">主题/疾病</label>
@@ -109,6 +119,19 @@
                     </div>
                 </div>
             </div>
+
+                <!-- 批量操作工具栏（仅登录医生可见）-->
+                <div id="bulk-toolbar" class="hidden mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
+                    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="bulk-select-all" class="w-4 h-4">
+                        <span>全选</span>
+                    </label>
+                    <span id="bulk-count" class="text-xs text-slate-500">已选 0 项</span>
+                    <div class="flex-1"></div>
+                    <button id="bulk-delete-btn" onclick="bulkDelete()" disabled class="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa fa-trash mr-1"></i>删除选中
+                    </button>
+                </div>
 
                 <div id="results-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 </div>
@@ -151,10 +174,13 @@
         // --- 全局变量定义 ---
         const resultsGrid = document.getElementById('results-grid');
         const searchInput = document.getElementById('search-input');
+        const cancerTypeFilter = document.getElementById('cancer-type-filter');
         const topicFilter = document.getElementById('topic-filter');
         const formatFilter = document.getElementById('format-filter');
         const audienceFilter = document.getElementById('audience-filter');
-        let allWorks = []; 
+        let allWorks = [];
+        let currentUser = null;
+        let selectedIds = new Set();
 
         // --- Modal 相关的元素 ---
         const modalContainer = document.getElementById('modal-container');
@@ -181,6 +207,12 @@
                 // 兼容静态 works.json 和 API 格式
                 const coverImg = work.coverImage || work.image || '';
                 const summary = work.summary || '';
+                // API 作品 id 是 "api-xxx" 格式，仅这些才能被批量删除
+                const isApiWork = typeof work.id === 'string' && work.id.startsWith('api-');
+                const canDelete = currentUser && isApiWork && (currentUser.role === 'admin' || work.createdBy === currentUser.id);
+                const checkboxHtml = canDelete
+                    ? `<label class="absolute top-3 left-3 z-10 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center cursor-pointer" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-checkbox w-4 h-4" data-id="${work.id}" onchange="toggleSelected('${work.id}', this.checked)"></label>`
+                    : '';
                 let tagsHTML = '';
                 const dimensions = ['topic', 'format', 'audience'];
                 dimensions.forEach(dimension => {
@@ -191,7 +223,8 @@
                     }
                 });
                 resultsGrid.innerHTML += `
-                    <div data-id="${work.id}" class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-shadow duration-300 cursor-pointer">
+                    <div data-id="${work.id}" class="relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-shadow duration-300 cursor-pointer">
+                        ${checkboxHtml}
                         ${coverImg
                             ? `<img class="w-full h-48 object-cover pointer-events-none" src="${coverImg}" alt="${work.title}">`
                             : `<div class="w-full h-48 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-file-medical text-4xl text-blue-200"></i></div>`
@@ -209,13 +242,14 @@
 
         // --- 筛选函数 ---
         function applyFilters() {
-            // ... (这部分函数内容不变)
             const searchTerm = searchInput.value.toLowerCase();
+            const selectedCancerType = cancerTypeFilter.value;
             const selectedTopic = topicFilter.value;
             const selectedFormat = formatFilter.value;
             const selectedAudience = audienceFilter.value;
             let filteredWorks = allWorks;
             if (searchTerm) { filteredWorks = filteredWorks.filter(w => w.title.toLowerCase().includes(searchTerm)); }
+            if (selectedCancerType) { filteredWorks = filteredWorks.filter(w => (w.cancerType || 'general') === selectedCancerType); }
             if (selectedTopic !== '所有主题') { filteredWorks = filteredWorks.filter(w => w.topic && w.topic.split(',').map(t=>t.trim()).includes(selectedTopic)); }
             if (selectedFormat !== '所有形式') { filteredWorks = filteredWorks.filter(w => w.format && w.format.split(',').map(t=>t.trim()).includes(selectedFormat)); }
             if (selectedAudience !== '所有受众') { filteredWorks = filteredWorks.filter(w => w.audience && w.audience.split(',').map(t=>t.trim()).includes(selectedAudience)); }
@@ -282,11 +316,58 @@
             modalBody.innerHTML = '';
         }
 
+        // --- 批量选择功能 ---
+        window.toggleSelected = function(id, checked) {
+            if (checked) selectedIds.add(String(id));
+            else selectedIds.delete(String(id));
+            updateBulkToolbar();
+        };
+
+        function updateBulkToolbar() {
+            const countEl = document.getElementById('bulk-count');
+            const btnEl = document.getElementById('bulk-delete-btn');
+            const count = selectedIds.size;
+            if (countEl) countEl.textContent = `已选 ${count} 项`;
+            if (btnEl) btnEl.disabled = count === 0;
+        }
+
+        window.bulkDelete = async function() {
+            if (!selectedIds.size) return;
+            const ids = [...selectedIds].map(s => Number(String(s).replace(/^api-/, ''))).filter(Boolean);
+            if (!confirm(`确认删除 ${ids.length} 个作品？\n删除后将从作品库移除，您仍可在「我的作品」中找到并恢复。`)) return;
+
+            try {
+                const res = await fetch('/api/works/bulk-archive', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                if (!res.ok) throw new Error('删除失败 (' + res.status + ')');
+                const data = await res.json();
+                alert(`成功删除 ${data.archived.length} 项${data.skipped.length ? `，跳过 ${data.skipped.length} 项（无权限或不存在）` : ''}`);
+                selectedIds.clear();
+                // 重新加载列表
+                loadData();
+            } catch (err) {
+                alert('删除失败：' + (err.message || err));
+            }
+        };
+
         // --- 绑定所有事件监听器 ---
         searchInput.addEventListener('input', applyFilters);
+        cancerTypeFilter.addEventListener('change', applyFilters);
         topicFilter.addEventListener('change', applyFilters);
         formatFilter.addEventListener('change', applyFilters);
         audienceFilter.addEventListener('change', applyFilters);
+
+        document.getElementById('bulk-select-all').addEventListener('change', function(e) {
+            const boxes = document.querySelectorAll('.bulk-checkbox');
+            boxes.forEach(box => {
+                box.checked = e.target.checked;
+                toggleSelected(box.dataset.id, e.target.checked);
+            });
+        });
         
         modalCloseBtn.addEventListener('click', closeModal);
         modalContainer.addEventListener('click', (event) => {
@@ -305,25 +386,43 @@
             }
         });
 
-        // --- 初始化：同时加载静态素材库 + API 发布的作品，合并展示 ---
-        Promise.all([
-            fetch('works.json').then(r => r.json()).catch(() => []),
-            fetch('/api/library/works', { credentials: 'include' })
-                .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-                .then(d => d.items || [])
-                .catch(() => [])
-        ]).then(([staticWorks, apiWorks]) => {
+        // --- 初始化：先检测登录态，再加载作品 ---
+        async function loadData() {
+            selectedIds.clear();
+            updateBulkToolbar();
+            const [userData, staticWorks, apiWorks] = await Promise.all([
+                fetch('/api/auth/me', { credentials: 'include' })
+                    .then(r => r.ok ? r.json() : null)
+                    .catch(() => null),
+                fetch('works.json').then(r => r.json()).catch(() => []),
+                fetch('/api/library/works', { credentials: 'include' })
+                    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+                    .then(d => d.items || [])
+                    .catch(() => [])
+            ]);
+
+            currentUser = userData?.user || null;
+            // 只有登录的医生或管理员才显示批量工具栏
+            if (currentUser && (currentUser.role === 'doctor' || currentUser.role === 'admin')) {
+                document.getElementById('bulk-toolbar').classList.remove('hidden');
+            } else {
+                document.getElementById('bulk-toolbar').classList.add('hidden');
+            }
+
             // API 作品 ID 加前缀避免与静态 ID 冲突
             apiWorks.forEach(w => { w.id = 'api-' + w.id; });
             allWorks = [...apiWorks, ...staticWorks];
-            renderWorks(allWorks);
+            applyFilters();
+
             // 二维码扫码跳转：自动打开指定作品
             const highlightId = new URLSearchParams(window.location.search).get('highlight');
             if (highlightId) {
                 const target = allWorks.find(w => w.id == highlightId || w.id == 'api-' + highlightId);
                 if (target) { setTimeout(() => openModal(target), 500); }
             }
-        });
+        }
+        window.loadData = loadData;
+        loadData();
 
     }); // DOMContentLoaded 结束
 </script>

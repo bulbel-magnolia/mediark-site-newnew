@@ -719,13 +719,17 @@ export function listLibraryWorks(db) {
 
   return rows.map((row) => {
     const work = hydrateWork(db, row);
+    const input = work.latestVersion?.input || {};
+    const cancerType = input?.patient?.cancerType || "esophageal";
     return {
       id: work.id,
       title: work.title,
       topic: work.topic,
       format: work.format,
       audience: work.audience,
+      cancerType,
       publishedAt: work.publishedAt,
+      createdBy: work.createdBy?.id || null,
       poster: work.latestVersion?.posterPayload || null,
       summary: work.latestVersion?.masterJson?.spec?.copy_master?.short_summary || "",
       coverImage:

@@ -231,6 +231,39 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
     });
   });
 
+  // 批量归档（作品库删除使用）
+  router.post("/bulk-archive", (req, res) => {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Boolean) : [];
+    if (!ids.length) {
+      return res.status(400).json({ error: "ids required" });
+    }
+
+    const archived = [];
+    const skipped = [];
+    const userId = req.auth.user.id;
+    const isAdmin = req.auth.user.role === "admin";
+
+    for (const id of ids) {
+      const work = getWorkById(db, id);
+      if (!work) {
+        skipped.push({ id, reason: "not_found" });
+        continue;
+      }
+      if (!isAdmin && work.createdBy?.id !== userId) {
+        skipped.push({ id, reason: "not_owner" });
+        continue;
+      }
+      try {
+        archiveWork(db, id, userId, "Bulk archive from library");
+        archived.push(id);
+      } catch (err) {
+        skipped.push({ id, reason: String(err?.message || err) });
+      }
+    }
+
+    return res.json({ archived, skipped });
+  });
+
   // Poll video task status from provider (proxied to avoid CORS)
   router.get("/video-status/:taskId", async (req, res) => {
     try {
