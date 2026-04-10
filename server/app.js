@@ -13,6 +13,7 @@ import { createPatientsRouter } from "./routes/patients.js";
 import { createWorksRouter } from "./routes/works.js";
 import { createKnowledgeRouter } from "./routes/knowledge.js";
 import { createPublicViewRouter } from "./routes/public-view.js";
+import { createTemplatesRouter } from "./routes/templates.js";
 import { seedDatabase } from "./seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,6 +40,7 @@ export function createApp({ db = createDatabase(), disableStatic = false, genera
   app.use("/api/library", createLibraryRouter({ db }));
   app.use("/api/knowledge", createKnowledgeRouter({ db, auth }));
   app.use("/api/public/view", createPublicViewRouter({ db }));
+  app.use("/api/templates", createTemplatesRouter({ db, auth }));
 
   app.use((error, _req, res, _next) => {
     console.error(error);

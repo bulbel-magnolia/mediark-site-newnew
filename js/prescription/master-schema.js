@@ -1,3 +1,5 @@
+import { interpretPatientProfile } from "./profile-interpreter.js";
+
 export const POSTER_LIMITS = {
   title: 18,
   subtitle: 28,
@@ -61,6 +63,7 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
   const language = formInput.language || "zh-CN";
   const isEnglish = String(language).toLowerCase().startsWith("en");
   const focusTopics = normalizeArray(formInput.focusTopics);
+  const profile = interpretPatientProfile(patient.tags, patient.notes);
   const evidenceBundle = normalizeArray(evidence).map((item) => ({
     id: item.id || "",
     title: item.title || "",
@@ -110,10 +113,15 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
         diagnosis: patient.diagnosis || "",
         treatment_stage: patient.stage || "",
         focus_topics: focusTopics,
-        education_level: patient.educationLevel || "standard",
-        anxiety_level: patient.anxietyLevel || "high",
+        education_level: profile.literacy || patient.educationLevel || "standard",
+        anxiety_level: profile.tone === "reassuring" ? "high" : (patient.anxietyLevel || "standard"),
         family_support: patient.familySupport ?? true,
-        patient_tags: normalizeArray(patient.tags)
+        patient_tags: normalizeArray(patient.tags).map((t) => typeof t === "string" ? t : t?.text || ""),
+        profile_preferences: {
+          tone: profile.tone,
+          literacy: profile.literacy,
+          format_preference: profile.formatPreference
+        }
       },
       evidence_bundle: evidenceBundle,
       clinical_core: {
@@ -136,8 +144,8 @@ export function buildMasterJson({ patient = {}, formInput = {}, evidence = [], o
         ]
       },
       communication_strategy: {
-        tone: "reassuring",
-        literacy_level: "plain_language",
+        tone: profile.tone || "reassuring",
+        literacy_level: profile.literacy === "advanced" ? "professional" : (profile.literacy === "plain" ? "plain_language" : "standard"),
         family_included: true,
         style_goal: "clinical_education_first",
         doctor_notes: formInput.doctorNotes || ""

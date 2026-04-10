@@ -186,7 +186,11 @@
 
             var actionsHtml = buildCardActions(work);
 
-            grid.innerHTML += '<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition cursor-pointer" onclick="openDetail(' + work.id + ')">'
+            var unreadBadge = (work.unreadFeedbackCount > 0)
+                ? '<span class="absolute top-2 right-2 z-10 bg-red-500 text-white text-xs font-bold rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center shadow-md" title="' + work.unreadFeedbackCount + ' 条未读反馈">' + work.unreadFeedbackCount + '</span>'
+                : '';
+            grid.innerHTML += '<div class="relative bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition cursor-pointer" onclick="openDetail(' + work.id + ')">'
+                + unreadBadge
                 + (coverImg
                     ? '<div class="h-40 overflow-hidden"><img src="' + coverImg + '" class="w-full h-full object-cover"></div>'
                     : '<div class="h-40 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center"><i class="fa-solid fa-file-medical text-4xl text-blue-200"></i></div>')
@@ -215,11 +219,13 @@
             html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">发布到作品库</button>';
         } else if (s === 'published') {
             html += '<a href="library.html" class="flex-1 px-2 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition text-center">查看作品库</a>';
+            html += '<button onclick="showFeedback(' + work.id + ')" class="px-2 py-1.5 bg-red-50 text-red-700 rounded text-xs font-medium hover:bg-red-100 transition" title="患者反馈"><i class="fa-solid fa-comment-dots"></i></button>';
             html += '<button onclick="showQRCode(' + work.id + ',\'' + (work.title || '').replace(/'/g, "\\'") + '\')" class="px-2 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition" title="患者扫码查看"><i class="fa-solid fa-qrcode"></i></button>';
         } else if (s === 'archived') {
-            // 归档作品如果曾经发布过，仍可显示二维码
+            // 归档作品如果曾经发布过，仍可显示二维码和反馈
             if (work.viewToken) {
                 html += '<button onclick="showQRCode(' + work.id + ',\'' + (work.title || '').replace(/'/g, "\\'") + '\')" class="flex-1 px-2 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition" title="患者扫码查看"><i class="fa-solid fa-qrcode mr-1"></i>患者扫码</button>';
+                html += '<button onclick="showFeedback(' + work.id + ')" class="px-2 py-1.5 bg-red-50 text-red-700 rounded text-xs font-medium hover:bg-red-100 transition" title="患者反馈"><i class="fa-solid fa-comment-dots"></i></button>';
             }
             html += '<button onclick="doAction(' + work.id + ',\'publish\')" class="flex-1 px-2 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition">重新发布</button>';
         } else if (s === 'changes_requested') {
@@ -379,6 +385,62 @@
     document.getElementById('detail-modal').addEventListener('click', function(e) {
         if (e.target === this) closeDetail();
     });
+
+    // === 患者反馈列表 ===
+    async function showFeedback(workId) {
+        var modal = document.getElementById('detail-modal');
+        document.getElementById('modal-title').textContent = '患者反馈';
+        document.getElementById('modal-body').innerHTML = '<div class="text-center py-8 text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
+        modal.classList.remove('hidden');
+
+        try {
+            var res = await fetch('/api/works/' + workId + '/feedback', { credentials: 'include' });
+            if (!res.ok) throw new Error('加载失败');
+            var data = await res.json();
+            var items = data.items || [];
+
+            if (!items.length) {
+                document.getElementById('modal-body').innerHTML = '<div class="text-center py-12 text-slate-400"><i class="fa-solid fa-comment-slash text-4xl mb-3 block"></i><p>暂无患者反馈</p><p class="text-xs mt-2">患者扫码查看作品后可以提交反馈</p></div>';
+            } else {
+                var typeLabels = {
+                    understood: { text: '我看懂了', icon: 'fa-check-circle', bg: 'bg-emerald-50 border-emerald-200', textColor: 'text-emerald-700' },
+                    question: { text: '有疑问想问医生', icon: 'fa-question-circle', bg: 'bg-amber-50 border-amber-200', textColor: 'text-amber-700' },
+                    helpful: { text: '这内容对我有帮助', icon: 'fa-thumbs-up', bg: 'bg-blue-50 border-blue-200', textColor: 'text-blue-700' }
+                };
+                var html = '<div class="space-y-3 max-h-[60vh] overflow-y-auto">';
+                items.forEach(function(it) {
+                    var cfg = typeLabels[it.type] || { text: it.type, icon: 'fa-comment', bg: 'bg-slate-50 border-slate-200', textColor: 'text-slate-700' };
+                    var timeStr = new Date(it.createdAt).toLocaleString('zh-CN');
+                    var unread = !it.readAt ? '<span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full ml-2">新</span>' : '';
+                    html += '<div class="p-4 rounded-lg border ' + cfg.bg + '">'
+                        + '<div class="flex items-center gap-2 ' + cfg.textColor + ' font-semibold mb-1"><i class="fa-solid ' + cfg.icon + '"></i>' + cfg.text + unread + '</div>'
+                        + (it.message ? '<p class="text-sm text-slate-700 mt-2">' + escapeHtml(it.message) + '</p>' : '')
+                        + '<p class="text-xs text-slate-400 mt-2">' + timeStr + '</p>'
+                        + '</div>';
+                });
+                html += '</div>';
+                document.getElementById('modal-body').innerHTML = html;
+
+                // 标记已读
+                fetch('/api/works/' + workId + '/feedback/read', {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }, body: '{}'
+                }).then(function() {
+                    // 重载列表让红点消失（延迟避免模态关闭时刷屏）
+                    setTimeout(loadWorks, 500);
+                }).catch(function() {});
+            }
+        } catch (err) {
+            document.getElementById('modal-body').innerHTML = '<div class="text-center py-8 text-red-500">加载失败：' + (err.message || err) + '</div>';
+        }
+        document.getElementById('modal-actions').innerHTML = '<button onclick="closeDetail()" class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm transition">关闭</button>';
+    }
+
+    function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, function(c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
 
     // === 患者二维码 ===
     function showQRCode(workId, title) {

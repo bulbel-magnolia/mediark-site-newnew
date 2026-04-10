@@ -78,5 +78,29 @@ export function createPublicViewRouter({ db }) {
     });
   });
 
+  // POST /api/public/view/:token/feedback — 患者端提交反馈（无需登录）
+  router.post("/:token/feedback", (req, res) => {
+    const token = String(req.params.token || "").trim();
+    if (!token) return res.status(400).json({ error: "Missing token." });
+
+    const work = get(db, "SELECT id FROM works WHERE view_token = :token AND status IN ('published', 'archived')", { token });
+    if (!work) return res.status(404).json({ error: "作品未找到或已下线" });
+
+    const type = String(req.body?.type || "").trim();
+    if (!["understood", "question", "helpful"].includes(type)) {
+      return res.status(400).json({ error: "Invalid feedback type" });
+    }
+
+    const message = String(req.body?.message || "").trim().slice(0, 500);
+
+    run(
+      db,
+      "INSERT INTO patient_feedback (work_id, feedback_type, message) VALUES (:workId, :type, :message)",
+      { workId: work.id, type, message }
+    );
+
+    return res.status(201).json({ ok: true });
+  });
+
   return router;
 }

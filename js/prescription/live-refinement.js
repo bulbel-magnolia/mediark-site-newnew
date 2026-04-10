@@ -1,4 +1,5 @@
 import { POSTER_LIMITS, clampPosterText } from "./master-schema.js";
+import { interpretPatientProfile } from "./profile-interpreter.js";
 
 function normalizeArray(value, limit) {
   if (!Array.isArray(value)) {
@@ -94,6 +95,15 @@ export function buildTextRefinementPrompt({ patient, formInput, evidence, draftM
     key_points: e.key_points || []
   }));
 
+  const profile = interpretPatientProfile(patient?.tags, patient?.notes);
+  const profileSection = profile.instructions.length
+    ? [
+        "",
+        "PATIENT PROFILE INSTRUCTIONS (strictly follow — these personalize the content for THIS specific patient):",
+        ...profile.instructions.map((inst, i) => `${i + 1}. ${inst}`)
+      ]
+    : [];
+
   return [
     "You are a clinician-in-the-loop patient education copy assistant.",
     "Return one JSON object only. No markdown fences.",
@@ -105,13 +115,18 @@ export function buildTextRefinementPrompt({ patient, formInput, evidence, draftM
     "4. Do NOT add treatment recommendations, drug names, or dosing beyond what appears in the evidence.",
     "5. Keep the writing clinically conservative, easy to understand, and suitable for patient education.",
     "6. In the doctor_review_note field, list which evidence IDs (e.g. KB-9, KB-11) informed the content.",
+    ...profileSection,
     "",
     "Patient:",
     JSON.stringify({
       id: patient?.id || "",
       name: patient?.name || "",
       diagnosis: patient?.diagnosis || "",
-      stage: patient?.stage || ""
+      stage: patient?.stage || "",
+      tags: (patient?.tags || []).map((t) => typeof t === "string" ? t : t?.text).filter(Boolean),
+      tone: profile.tone || "default",
+      literacy: profile.literacy || "standard",
+      formatPreference: profile.formatPreference || "default"
     }, null, 2),
     "",
     "Form input:",

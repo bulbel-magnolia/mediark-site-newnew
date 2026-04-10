@@ -492,6 +492,33 @@ function ensureMigrations(db) {
   try { db.exec("ALTER TABLE works ADD COLUMN view_token TEXT"); } catch { /* column already exists */ }
   try { db.exec("ALTER TABLE works ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_works_view_token ON works(view_token)"); } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS patient_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      work_id INTEGER NOT NULL REFERENCES works(id) ON DELETE CASCADE,
+      feedback_type TEXT NOT NULL,
+      message TEXT NOT NULL DEFAULT '',
+      read_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec("CREATE INDEX IF NOT EXISTS idx_patient_feedback_work ON patient_feedback(work_id, created_at DESC)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_patient_feedback_unread ON patient_feedback(work_id, read_at)");
+  } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS work_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cancer_type TEXT NOT NULL DEFAULT 'esophageal',
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      focus_topics_json TEXT NOT NULL DEFAULT '[]',
+      doctor_notes_template TEXT NOT NULL DEFAULT '',
+      suggested_formats TEXT NOT NULL DEFAULT 'poster-text',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+    db.exec("CREATE INDEX IF NOT EXISTS idx_templates_cancer ON work_templates(cancer_type, is_active, sort_order)");
+  } catch {}
 }
 
 function seedClinicalDefaults(db) {
@@ -598,6 +625,106 @@ function seedClinicalDefaults(db) {
   }
 }
 
+function seedWorkTemplates(db) {
+  const existing = get(db, "SELECT id FROM work_templates LIMIT 1");
+  if (existing) return;
+
+  const templates = [
+    {
+      name: "食管癌术前准备",
+      description: "术前营养储备、戒烟戒酒、肺功能训练",
+      focusTopics: ["术前评估", "营养准备", "肺功能训练", "心理调适"],
+      doctorNotes: "患者即将接受食管癌手术，请强调术前营养储备（高蛋白饮食+ONS）、戒烟戒酒至少2周、深呼吸及咳嗽训练、心理调适。语气温和但要突出准备的重要性。",
+      suggestedFormats: "poster-text",
+      sortOrder: 10
+    },
+    {
+      name: "术后第1周饮食教育",
+      description: "清流质阶段，少量多餐、进食体位",
+      focusTopics: ["术后饮食", "吞咽训练", "伤口护理"],
+      doctorNotes: "患者刚完成食管切除，目前处于清流质阶段（术后3-7天）。强调每次30-50ml、每日6-8次、进食后坐位30分钟、细嚼慢咽。语气鼓励安抚，缓解进食恐惧。",
+      suggestedFormats: "poster-text",
+      sortOrder: 20
+    },
+    {
+      name: "术后第2-4周恢复指南",
+      description: "半流食过渡、体重监测",
+      focusTopics: ["术后饮食", "吞咽训练", "体重监测", "复查提醒"],
+      doctorNotes: "患者进入半流食/软食过渡阶段。重点讲解饮食性状升级节奏（每阶段3-5天）、每周测体重、出现吞咽困难加重或体重下降超2%需就医。",
+      suggestedFormats: "poster-text",
+      sortOrder: 30
+    },
+    {
+      name: "术后3月随访要点",
+      description: "复发信号、营养追赶、随访计划",
+      focusTopics: ["复查提醒", "危险信号", "营养追赶", "复发预防"],
+      doctorNotes: "术后3个月常规随访节点。重点讲解复发信号（进行性吞咽困难、体重骤降、持续胸痛）、随访频率（术后2年内每3个月）、营养追赶目标（BMI≥18.5）。",
+      suggestedFormats: "poster-text",
+      sortOrder: 40
+    },
+    {
+      name: "新辅助放化疗期间",
+      description: "CROSS 方案常见反应和应对",
+      focusTopics: ["用药指导", "危险信号", "营养管理", "症状应对"],
+      doctorNotes: "患者正在接受新辅助放化疗（CROSS 方案）。强调止吐药按时服用、血象监测、放射性食管炎预防（PPI+黏膜保护）、高蛋白饮食支持。",
+      suggestedFormats: "poster-text",
+      sortOrder: 50
+    },
+    {
+      name: "放射性食管炎管理",
+      description: "饮食调整和疼痛管理",
+      focusTopics: ["饮食调整", "疼痛管理", "用药指导", "黏膜保护"],
+      doctorNotes: "患者出现放射性食管炎（通常放疗第2-3周出现）。指导温凉流质饮食、利多卡因含漱液止痛、PPI预防、症状评分≥3级时告知医生。",
+      suggestedFormats: "poster-text",
+      sortOrder: 60
+    },
+    {
+      name: "化疗不良反应应对",
+      description: "骨髓抑制、消化道反应、感染预防",
+      focusTopics: ["用药指导", "危险信号", "感染预防", "心理疏导"],
+      doctorNotes: "患者正处于化疗周期。关注骨髓抑制（体温>38°C立即就医）、恶心呕吐管理（少量多餐+止吐药）、口腔炎预防（漱口）、避免人群聚集。",
+      suggestedFormats: "poster-text",
+      sortOrder: 70
+    },
+    {
+      name: "吞咽困难康复训练",
+      description: "系统吞咽训练和体位代偿",
+      focusTopics: ["吞咽训练", "饮食调整", "体位代偿", "康复运动"],
+      doctorNotes: "术后吞咽困难患者。指导 Mendelsohn 手法、声门上吞咽、进食时头前屈30度、口腔运动训练（每日3次）、VFS评估III级以上需康复科会诊。",
+      suggestedFormats: "poster-text-video",
+      sortOrder: 80
+    },
+    {
+      name: "心理支持与家属沟通",
+      description: "焦虑情绪干预和家属教育",
+      focusTopics: ["心理疏导", "家属支持", "沟通技巧", "焦虑管理"],
+      doctorNotes: "患者焦虑明显，需要心理支持。讲解认知行为疗法（CBT）自助技巧、正念减压、家属如何陪护（多倾听少建议）、PHQ-9≥10分建议心理科转诊。",
+      suggestedFormats: "poster-text",
+      sortOrder: 90
+    },
+    {
+      name: "出院居家护理",
+      description: "居家自护要点和紧急就医指征",
+      focusTopics: ["居家护理", "伤口护理", "用药指导", "复查提醒", "危险信号"],
+      doctorNotes: "患者即将出院。强调伤口观察要点、药物服用时间和剂量、复查时间表、紧急就医指征（高热、呕血、剧烈疼痛、呼吸困难）。提供紧急联系电话。",
+      suggestedFormats: "poster-text",
+      sortOrder: 100
+    }
+  ];
+
+  for (const t of templates) {
+    run(db, `INSERT INTO work_templates (cancer_type, name, description, focus_topics_json, doctor_notes_template, suggested_formats, sort_order)
+             VALUES ('esophageal', :name, :description, :focusTopicsJson, :doctorNotes, :suggestedFormats, :sortOrder)`, {
+      name: t.name,
+      description: t.description,
+      focusTopicsJson: toJson(t.focusTopics),
+      doctorNotes: t.doctorNotes,
+      suggestedFormats: t.suggestedFormats,
+      sortOrder: t.sortOrder
+    });
+  }
+}
+
 export function seedDatabase(db) {
   ensureMigrations(db);
 
@@ -630,6 +757,9 @@ export function seedDatabase(db) {
 
   // Seed clinical action defaults (evidence-based must_do/must_avoid/red_flags per category)
   seedClinicalDefaults(db);
+
+  // Seed work templates (prescription shortcuts for common scenarios)
+  seedWorkTemplates(db);
 
   const existingSchema = get(db, "SELECT id FROM schemas WHERE slug = :slug", {
     slug: "clinical-education-prescription"

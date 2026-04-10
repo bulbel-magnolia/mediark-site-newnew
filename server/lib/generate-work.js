@@ -13,7 +13,9 @@ function normalizeInput(input = {}) {
       name: input.patient?.name || "Unnamed Patient",
       diagnosis: input.patient?.diagnosis || "General recovery education",
       stage: input.patient?.stage || "Follow-up",
-      cancerType: input.patient?.cancerType || inferCancerType(input.patient?.diagnosis) || "esophageal"
+      cancerType: input.patient?.cancerType || inferCancerType(input.patient?.diagnosis) || "esophageal",
+      tags: Array.isArray(input.patient?.tags) ? input.patient.tags : [],
+      notes: input.patient?.notes || ""
     },
     form: {
       language: input.form?.language || "zh-CN",

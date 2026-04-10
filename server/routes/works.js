@@ -231,6 +231,43 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
     });
   });
 
+  // 医生端查看患者反馈列表
+  router.get("/:id/feedback", (req, res) => {
+    const work = requireOwnedWork(req, res);
+    if (!work) return;
+
+    const rows = db.prepare(
+      `SELECT id, feedback_type, message, read_at, created_at
+         FROM patient_feedback
+        WHERE work_id = :workId
+        ORDER BY created_at DESC`
+    ).all({ workId: work.id });
+
+    return res.json({
+      items: rows.map((r) => ({
+        id: r.id,
+        type: r.feedback_type,
+        message: r.message,
+        readAt: r.read_at,
+        createdAt: r.created_at
+      }))
+    });
+  });
+
+  // 把某作品的所有未读反馈标记为已读
+  router.post("/:id/feedback/read", (req, res) => {
+    const work = requireOwnedWork(req, res);
+    if (!work) return;
+
+    run(
+      db,
+      "UPDATE patient_feedback SET read_at = :readAt WHERE work_id = :workId AND read_at IS NULL",
+      { workId: work.id, readAt: new Date().toISOString() }
+    );
+
+    return res.json({ ok: true });
+  });
+
   // 批量归档（作品库删除使用）
   router.post("/bulk-archive", (req, res) => {
     const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Boolean) : [];

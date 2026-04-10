@@ -172,3 +172,28 @@ CREATE TABLE IF NOT EXISTS clinical_defaults (
   UNIQUE(cancer_type, category, language)
 );
 CREATE INDEX IF NOT EXISTS idx_clinical_defaults_lookup ON clinical_defaults(cancer_type, category, language);
+
+CREATE TABLE IF NOT EXISTS patient_feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  work_id INTEGER NOT NULL REFERENCES works(id) ON DELETE CASCADE,
+  feedback_type TEXT NOT NULL,
+  message TEXT NOT NULL DEFAULT '',
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_patient_feedback_work ON patient_feedback(work_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_patient_feedback_unread ON patient_feedback(work_id, read_at);
+
+CREATE TABLE IF NOT EXISTS work_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cancer_type TEXT NOT NULL DEFAULT 'esophageal',
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  focus_topics_json TEXT NOT NULL DEFAULT '[]',
+  doctor_notes_template TEXT NOT NULL DEFAULT '',
+  suggested_formats TEXT NOT NULL DEFAULT 'poster-text',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_templates_cancer ON work_templates(cancer_type, is_active, sort_order);

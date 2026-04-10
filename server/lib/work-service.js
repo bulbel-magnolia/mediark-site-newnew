@@ -430,7 +430,9 @@ export function listWorks(db, user, filters = {}) {
     `SELECT works.*,
             schemas.slug AS schema_slug,
             creators.display_name AS created_by_name,
-            reviewers.display_name AS assigned_reviewer_name
+            reviewers.display_name AS assigned_reviewer_name,
+            (SELECT COUNT(*) FROM patient_feedback pf
+              WHERE pf.work_id = works.id AND pf.read_at IS NULL) AS unread_feedback_count
        FROM works
        JOIN schemas ON schemas.id = works.schema_id
        JOIN users AS creators ON creators.id = works.created_by
@@ -440,7 +442,11 @@ export function listWorks(db, user, filters = {}) {
     params
   );
 
-  return rows.map((row) => hydrateWork(db, row));
+  return rows.map((row) => {
+    const work = hydrateWork(db, row);
+    work.unreadFeedbackCount = row.unread_feedback_count || 0;
+    return work;
+  });
 }
 
 function insertAssets(db, workVersionId, artifacts) {
