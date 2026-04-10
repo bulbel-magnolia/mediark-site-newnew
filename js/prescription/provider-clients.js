@@ -469,6 +469,7 @@ export async function requestImageGeneration({ provider, asset, fetchImpl }) {
   if (!response.ok) {
     const payload = await readErrorPayload(response);
     const errorCode = payload?.error?.code || "provider_error";
+    console.error(`[Seedream] Image API ${response.status}:`, JSON.stringify(payload).slice(0, 500));
 
     return {
       id: asset.id,
