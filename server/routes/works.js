@@ -2,6 +2,7 @@ import express from "express";
 
 import { run } from "../db.js";
 import { generateWorkBundle } from "../lib/generate-work.js";
+import { createTask, getTask, updateTask } from "../lib/task-manager.js";
 import {
   appendGeneratedWorkVersion,
   archiveWork,
@@ -93,40 +94,68 @@ export function createWorksRouter({ db, auth, generationRuntime = {} }) {
     return res.json({ work });
   });
 
+  // 异步生成：立即返回 taskId，后台跑生成，前端轮询状态
   router.post("/generate", async (req, res) => {
-    const t0 = Date.now();
-    console.log(`[generate] REQUEST START format=${req.body?.input?.work?.format || "?"} user=${req.auth.user.id}`);
+    const schemaSlug = String(req.body?.schemaSlug || "clinical-education-prescription");
+    const active = getActiveSchemaVersion(db, schemaSlug);
 
-    try {
-      const schemaSlug = String(req.body?.schemaSlug || "clinical-education-prescription");
-      const active = getActiveSchemaVersion(db, schemaSlug);
-
-      if (!active) {
-        return res.status(404).json({ error: "Active schema not found." });
-      }
-
-      const generated = await generateWorkBundle({
-        input: req.body?.input || {},
-        runtime: generationRuntime,
-        db
-      });
-      console.log(`[generate] bundle built in ${Date.now() - t0}ms, images=${generated.bundle.masterJson.artifacts.images.length}`);
-
-      const work = createGeneratedWork(db, {
-        schema: active.schema,
-        schemaVersion: active.version,
-        input: generated.input,
-        bundle: generated.bundle,
-        workMeta: generated.workMeta,
-        createdBy: req.auth.user.id
-      });
-      console.log(`[generate] work saved workId=${work.id}, total ${Date.now() - t0}ms`);
-
-      return res.status(201).json({ work });
-    } catch (err) {
-      console.error(`[generate] ERROR after ${Date.now() - t0}ms:`, err?.stack || err);
-      return res.status(500).json({ error: String(err?.message || err) });
+    if (!active) {
+      return res.status(404).json({ error: "Active schema not found." });
     }
+
+    const task = createTask();
+    const userId = req.auth.user.id;
+    const input = req.body?.input || {};
+
+    console.log(`[generate] task=${task.id} created, format=${input?.work?.format || "?"}`);
+    res.status(202).json({ taskId: task.id });
+
+    // 后台异步执行（不阻塞响应）
+    (async () => {
+      const t0 = Date.now();
+      try {
+        updateTask(task.id, { status: "running", progress: "正在调用 AI 模型..." });
+
+        const generated = await generateWorkBundle({
+          input,
+          runtime: generationRuntime,
+          db
+        });
+        console.log(`[generate] task=${task.id} bundle built in ${Date.now() - t0}ms, images=${generated.bundle.masterJson.artifacts.images.length}`);
+
+        updateTask(task.id, { progress: "正在保存作品..." });
+
+        const work = createGeneratedWork(db, {
+          schema: active.schema,
+          schemaVersion: active.version,
+          input: generated.input,
+          bundle: generated.bundle,
+          workMeta: generated.workMeta,
+          createdBy: userId
+        });
+        console.log(`[generate] task=${task.id} work saved workId=${work.id}, total ${Date.now() - t0}ms`);
+
+        updateTask(task.id, { status: "completed", progress: "完成", result: { work } });
+      } catch (err) {
+        console.error(`[generate] task=${task.id} ERROR after ${Date.now() - t0}ms:`, err?.stack || err);
+        updateTask(task.id, { status: "failed", error: String(err?.message || err) });
+      }
+    })();
+  });
+
+  // 查询异步生成任务状态
+  router.get("/generate/task/:taskId", (req, res) => {
+    const task = getTask(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ error: "Task not found or expired." });
+    }
+    return res.json({
+      id: task.id,
+      status: task.status,
+      progress: task.progress,
+      error: task.error,
+      result: task.status === "completed" ? task.result : null
+    });
   });
 
   router.post("/:id/regenerate", async (req, res) => {

@@ -303,7 +303,7 @@
                         <div class="flex gap-3 mt-3">
                             <button onclick="goBackToStep1()" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-200 transition border border-slate-200"><i class="fa-solid fa-arrow-left"></i> 返回修改</button>
                             <button id="btn-approve" onclick="goToStep3()" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                <i class="fa-solid fa-check mr-1"></i> 确认无误，发布处方
+                                <i class="fa-solid fa-check mr-1"></i> 确认无误，保存作品
                             </button>
                         </div>
                     </div>
@@ -314,8 +314,8 @@
             <div id="step-3-content" class="hidden max-w-3xl mx-auto text-center pt-10 fade-in">
                 <div class="bg-white p-10 rounded-2xl shadow-2xl border border-slate-100 inline-block w-full">
                     <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6"><i class="fa-solid fa-check"></i></div>
-                    <h2 class="text-3xl font-bold text-slate-800 mb-2">科普作品已生成并发布</h2>
-                    <p class="text-slate-500 mb-8">作品已保存到「我的作品」，可在作品库中查看</p>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">科普作品已保存</h2>
+                    <p class="text-slate-500 mb-8">作品已保存到「我的作品」，需要手动发布后才会出现在作品库中</p>
                     <div class="flex justify-center gap-4">
                         <a href="my-works.html" class="px-6 py-2 text-slate-500 hover:text-slate-700 font-medium">查看我的作品</a>
                         <a href="prescription.html" class="px-8 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-lg">创建新作品</a>
@@ -486,13 +486,8 @@
 
     function goToStep3() {
         if (_videoAutoTimer) { clearInterval(_videoAutoTimer); _videoAutoTimer = null; }
-        if (currentWorkId) {
-            fetch('/api/works/' + currentWorkId + '/publish', {
-                method: 'POST', credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ note: '医生确认发布' })
-            }).catch(function() {});
-        }
+        // 作品已在 Step2 生成时保存（状态 generated），这里只跳转到完成页
+        // 用户需要到「我的作品」手动点击发布，才会进入作品库
         document.getElementById('step-2-content').classList.add('hidden');
         document.getElementById('step-3-content').classList.remove('hidden');
         setStepActive(3);
@@ -767,6 +762,7 @@
                 ? '/api/works/' + currentWorkId + '/regenerate'
                 : '/api/works/generate';
 
+            // 1) 发起生成请求（立即返回 taskId）
             var response = await fetch(endpoint, {
                 method: 'POST', credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -786,8 +782,41 @@
                 throw new Error(errBody.error || 'API 请求失败 (' + response.status + ')');
             }
 
-            var data = await response.json();
-            work = data.work;
+            var initialData = await response.json();
+
+            // 2) 如果返回 taskId，说明是异步生成，开始轮询
+            if (initialData.taskId) {
+                var taskId = initialData.taskId;
+                var pollStart = Date.now();
+                var maxPollMs = 10 * 60 * 1000; // 10 分钟上限
+                var taskResult = null;
+
+                while (true) {
+                    if (Date.now() - pollStart > maxPollMs) {
+                        throw new Error('生成超时（超过 10 分钟），请稍后在「我的作品」查看');
+                    }
+                    await new Promise(function(r) { setTimeout(r, 3000); });
+                    var pollRes = await fetch('/api/works/generate/task/' + taskId, { credentials: 'include' });
+                    if (!pollRes.ok) {
+                        throw new Error('无法查询生成进度 (' + pollRes.status + ')');
+                    }
+                    var pollData = await pollRes.json();
+                    if (pollData.progress) subStatus.innerText = pollData.progress;
+                    if (pollData.status === 'completed') {
+                        taskResult = pollData.result;
+                        break;
+                    }
+                    if (pollData.status === 'failed') {
+                        throw new Error(pollData.error || '生成失败');
+                    }
+                }
+
+                work = taskResult.work;
+            } else {
+                // 3) 兼容旧同步接口（regenerate 仍为同步）
+                work = initialData.work;
+            }
+
             currentWorkId = work.id;
             var version = work.latestVersion || (work.versions && work.versions[0]);
             masterJson = version ? version.masterJson : null;

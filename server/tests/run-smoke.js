@@ -45,7 +45,26 @@ try {
       }
     }
   });
-  assert.equal(generated.response.status, 201);
+  assert.equal(generated.response.status, 202);
+  assert.ok(generated.payload.taskId);
+
+  // Poll until task completes
+  let taskPayload = null;
+  for (let i = 0; i < 50; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+    const pollRes = await apiRequest(ctx.baseUrl, `/api/works/generate/task/${generated.payload.taskId}`, {
+      cookie: doctor.cookie
+    });
+    if (pollRes.payload?.status === "completed") {
+      taskPayload = pollRes.payload;
+      break;
+    }
+    if (pollRes.payload?.status === "failed") {
+      throw new Error(`Generation failed: ${pollRes.payload.error}`);
+    }
+  }
+  assert.ok(taskPayload?.result?.work);
+  generated.payload = taskPayload.result;
 
   const blockedAdminPublish = await apiRequest(ctx.baseUrl, `/api/works/${generated.payload.work.id}/publish`, {
     method: "POST",
