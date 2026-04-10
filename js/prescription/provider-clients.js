@@ -147,16 +147,16 @@ function resolveImagePath(data = {}) {
 }
 
 function resolveImageSize(asset = {}) {
-  // Seedream 5.0 要求最小 3,686,400 像素
+  // Seedream 5.0 要求最小 >3,686,400 像素，使用 2k 级别尺寸
   if (asset.aspect_ratio === "16:9") {
-    return "2560x1440";
+    return "2688x1536"; // 4,128,768 px
   }
 
   if (asset.aspect_ratio === "4:5") {
-    return "1920x2400";
+    return "1920x2400"; // 4,608,000 px
   }
 
-  return "2048x2048";
+  return "2048x2048"; // 4,194,304 px
 }
 
 function normalizeDurationSec(value) {
