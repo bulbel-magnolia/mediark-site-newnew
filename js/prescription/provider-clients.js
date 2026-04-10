@@ -148,14 +148,14 @@ function resolveImagePath(data = {}) {
 
 function resolveImageSize(asset = {}) {
   if (asset.aspect_ratio === "16:9") {
-    return "16:9";
+    return "1920x1080";
   }
 
   if (asset.aspect_ratio === "4:5") {
-    return "3:4";
+    return "1024x1280";
   }
 
-  return "1:1";
+  return "1024x1024";
 }
 
 function normalizeDurationSec(value) {
