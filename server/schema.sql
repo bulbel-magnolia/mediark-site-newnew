@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS works (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_works_view_token ON works(view_token);
+-- 注：view_token 索引在 seed.js ensureMigrations 里创建，避免与旧 DB 的 ALTER TABLE 竞态
 
 CREATE TABLE IF NOT EXISTS work_versions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
